@@ -8,9 +8,9 @@ Teknologi yang digunakan:
 
 - Java 1.8
 - Java Swing
-- NetBeans 8.2
-- MySQL/XAMPP
-- JDBC
+- NetBeans 8.2 (Ant project)
+- MySQL (lokal atau cloud Aiven)
+- JDBC + MySQL Connector/J 8.0.33
 - Metode TOPSIS
 
 ## Fitur
@@ -19,15 +19,15 @@ Teknologi yang digunakan:
 2. Kelola data karyawan sebagai alternatif.
 3. Kelola data kriteria, bobot, dan tipe kriteria benefit/cost.
 4. Input nilai penilaian karyawan per kriteria.
-5. Perhitungan TOPSIS otomatis.
+5. Perhitungan TOPSIS otomatis beserta tampilan matriks antara.
 6. Ranking karyawan terbaik berdasarkan nilai preferensi terbesar.
-7. Export laporan ranking ke CSV.
-8. Print tabel ranking.
+7. Cetak laporan (karyawan, kriteria, penilaian, ranking) menggunakan fitur print Swing.
+8. Validasi cetak: laporan ranking hanya bisa dicetak setelah perhitungan diproses.
 
 ## Struktur Project
 
 ```text
-src/com/mahadi/topsis
+src/com/mahadi/indivaragroup
 ├── dao       -> akses database
 ├── model     -> entity/model data
 ├── service   -> business logic, termasuk TOPSIS
@@ -43,72 +43,59 @@ Nama class utama memakai bahasa Indonesia, misalnya `Karyawan`, `Kriteria`, `Pen
 
 ### 1. Import Database
 
-1. Buka XAMPP.
-2. Start Apache dan MySQL.
-3. Buka `http://localhost/phpmyadmin`.
-4. Import file:
+Jalankan MySQL lokal, lalu import file:
 
 ```text
-database/db_topsis_karyawan.sql
+database/db_topsis_indivara_group.sql
 ```
 
-Database yang dibuat bernama:
+Bisa lewat phpMyAdmin atau command line:
 
 ```text
-db_topsis_karyawan
+mysql -u root -p < database/db_topsis_indivara_group.sql
 ```
 
-Catatan: versi refactor ini mengganti nama tabel dan kolom ke bahasa Indonesia.
-Jika sebelumnya sudah pernah import database versi lama, import ulang file SQL ini
-agar tabel `pengguna`, `karyawan`, `kriteria`, `penilaian`, dan `hasil_ranking`
-tersedia sesuai query aplikasi.
+Database yang dibuat bernama `db_topsis_indivara_group`, berisi tabel `pengguna`,
+`karyawan`, `kriteria`, `penilaian`, dan `hasil_ranking`, lengkap dengan data sample
+(100 karyawan, 5 kriteria, 500 nilai penilaian).
 
-### 2. Tambahkan MySQL Connector/J
+### 2. Buat File Konfigurasi Database
 
-Project ini membutuhkan MySQL Connector/J agar Java bisa terhubung ke MySQL.
-
-Rekomendasi untuk Java 8 dan NetBeans 8.2:
-
-```text
-mysql-connector-java-5.1.49.jar
-```
-
-Cara menambahkan di NetBeans:
-
-1. Klik kanan project.
-2. Pilih `Properties`.
-3. Pilih `Libraries`.
-4. Klik `Add JAR/Folder`.
-5. Pilih file `mysql-connector-java-5.1.49.jar`.
-6. Klik `OK`.
-
-Jika kamu menaruh file jar di folder `lib/` dengan nama `mysql-connector-java-5.1.49.jar`, project properties sudah diarahkan ke lokasi tersebut.
-
-### 3. Cek Konfigurasi Database
-
-File konfigurasi ada di:
-
-```text
-src/config.properties
-```
-
-Default konfigurasi:
+File `src/config.properties` **tidak ikut repository** karena berisi kredensial.
+Buat file tersebut secara manual dengan isi:
 
 ```properties
-db.url=jdbc:mysql://localhost:3306/db_topsis_karyawan?useSSL=false&useUnicode=true&characterEncoding=UTF-8
+db.driver=com.mysql.cj.jdbc.Driver
+
+# --- LOKAL (MySQL di komputer sendiri) ---
+db.url=jdbc:mysql://localhost:3306/db_topsis_indivara_group?sslMode=DISABLED&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8&connectTimeout=10000
 db.user=root
-db.password=
-db.driver=com.mysql.jdbc.Driver
+db.password=ISI_PASSWORD_MYSQL
+
+# --- CLOUD (contoh: Aiven MySQL, wajib TLS) ---
+#db.url=jdbc:mysql://HOST_CLOUD:PORT/db_topsis_indivara_group?sslMode=REQUIRED&useUnicode=true&characterEncoding=UTF-8&connectTimeout=10000&tcpKeepAlive=true&cachePrepStmts=true&prepStmtCacheSize=250&useLocalSessionState=true
+#db.user=USER_CLOUD
+#db.password=PASSWORD_CLOUD
 ```
 
-Jika password MySQL kamu tidak kosong, isi bagian `db.password`.
+Aktifkan salah satu blok (LOKAL atau CLOUD) dengan memindahkan tanda `#`.
+File ini ter-bundle ke dalam JAR, jadi setiap kali diubah harus
+`Clean and Build` ulang.
+
+### 3. Library MySQL Connector/J
+
+Driver sudah tersedia di `lib/mysql-connector-j-8.0.33.jar` dan sudah
+terdaftar di project properties. Tidak perlu setup tambahan selama struktur
+folder tidak diubah.
 
 ### 4. Jalankan Project
 
-1. Buka NetBeans 8.2.
-2. `File` -> `Open Project`.
-3. Pilih folder project ini.
-4. Klik kanan project -> `Run`.
+1. Buka NetBeans.
+2. `File` -> `Open Project` -> pilih folder project ini.
+3. Klik kanan project -> `Clean and Build` -> `Run`.
+
+JAR hasil build ada di `dist/SPK-TOPSIS-Indivara-Group.jar` dan bisa dijalankan
+langsung dengan double-click (butuh Java terpasang).
 
 Default login:
 
@@ -145,9 +132,8 @@ V_i = D_i^- / (D_i^+ + D_i^-)
 ## Catatan Pengembangan
 
 - Kriteria dan bobot awal hanya contoh akademik. Validasi kembali dengan HRD atau pembimbing.
-- Semua kriteria default bertipe benefit.
 - Total bobot kriteria harus sama dengan 1.
 - Nilai penilaian sebaiknya memakai skala 0 sampai 100 agar mudah dibaca.
 - Tanggal masuk karyawan bersifat opsional. Jika diisi, formatnya harus `yyyy-MM-dd`.
-- Data sample SQL menyediakan 150 data karyawan dan nilai penilaian lengkap untuk memenuhi kebutuhan minimal data Tugas Akhir.
+- Koneksi database memakai satu koneksi bersama (shared connection) agar tetap cepat saat memakai database cloud.
 - Keputusan akhir tetap berada pada pihak manajemen; sistem hanya alat bantu rekomendasi.
