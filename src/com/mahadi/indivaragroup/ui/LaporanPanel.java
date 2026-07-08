@@ -7,11 +7,11 @@ import com.mahadi.indivaragroup.dao.PenilaianDao;
 import com.mahadi.indivaragroup.model.HasilRanking;
 import com.mahadi.indivaragroup.model.Karyawan;
 import com.mahadi.indivaragroup.model.Kriteria;
-import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
 import com.mahadi.indivaragroup.util.DialogUtil;
 import com.mahadi.indivaragroup.util.NumberUtil;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Font;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
@@ -31,12 +31,17 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.List;
 import javax.imageio.ImageIO;
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
+import javax.print.attribute.standard.Destination;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.SwingWorker;
 import javax.swing.table.DefaultTableModel;
 
 public class LaporanPanel extends JPanel {
@@ -144,47 +149,50 @@ public class LaporanPanel extends JPanel {
     }
 
     private void muatLaporanKaryawan() throws Exception {
-        tableModel.setDataVector(new Object[][]{}, new Object[]{"Kode Karyawan", "Nama", "Jabatan", "Status"});
+        tableModel.setDataVector(new Object[][]{}, new Object[]{"No", "Kode Karyawan", "Nama", "Jabatan", "Status"});
         List<Karyawan> daftarKaryawan = karyawanDao.ambilSemua();
-        daftarKaryawan.forEach((karyawan) -> {
+        for (int i = 0; i < daftarKaryawan.size(); i++) {
+            Karyawan karyawan = daftarKaryawan.get(i);
             tableModel.addRow(new Object[]{
+                i + 1,
                 karyawan.getKodeKaryawan(),
                 karyawan.getNama(),
                 karyawan.getJabatan(),
                 karyawan.getStatus()
             });
-        });
+        }
     }
 
     private void muatLaporanKriteria() throws Exception {
-        tableModel.setDataVector(new Object[][]{}, new Object[]{"Kode", "Nama Kriteria", "Bobot", "Jenis"});
+        tableModel.setDataVector(new Object[][]{}, new Object[]{"No", "Kode", "Nama Kriteria", "Bobot", "Jenis"});
         List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
-        daftarKriteria.forEach((kriteria) -> {
+        for (int i = 0; i < daftarKriteria.size(); i++) {
+            Kriteria kriteria = daftarKriteria.get(i);
             tableModel.addRow(new Object[]{
+                i + 1,
                 kriteria.getKode(),
                 kriteria.getNama(),
                 kriteria.getBobot(),
                 kriteria.getTipe()
             });
-        });
+        }
     }
 
     private void muatLaporanPenilaian() throws Exception {
         tableModel.setDataVector(new Object[][]{}, new Object[]{
-            "Kode Karyawan", "Nama Karyawan", "Kode Kriteria", "Kriteria", "Nilai"
+            "No", "Kode Karyawan", "Nama Karyawan", "Kode Kriteria", "Kriteria", "Nilai"
         });
         List<Object[]> data = penilaianDao.ambilLaporanPenilaian();
-        data.forEach((baris) -> {
-            tableModel.addRow(baris);
-        });
+        for (int i = 0; i < data.size(); i++) {
+            Object[] baris = data.get(i);
+            Object[] barisBaru = new Object[baris.length + 1];
+            barisBaru[0] = i + 1;
+            System.arraycopy(baris, 0, barisBaru, 1, baris.length);
+            tableModel.addRow(barisBaru);
+        }
     }
 
     private void muatLaporanRanking() throws Exception {
-        if (!PerhitunganTopsisService.apakahPerhitunganSudahDiproses()) {
-            tampilkanPesanProsesPerhitungan();
-            return;
-        }
-
         List<HasilRanking> daftarRanking = hasilRankingDao.ambilSemua();
         if (daftarRanking.isEmpty()) {
             tampilkanPesanProsesPerhitungan();
@@ -211,26 +219,60 @@ public class LaporanPanel extends JPanel {
     }
 
     private void cetakLaporanPdf() {
-        String jenis = jenisLaporanComboBox.getSelectedItem().toString();
-        if (LAPORAN_DATA_RANKING.equals(jenis) && !PerhitunganTopsisService.apakahPerhitunganSudahDiproses()) {
-            DialogUtil.showWarning(this, "Proses Perhitungan Dahulu di Menu Perhitungan");
-            return;
-        }
-
         if (tableModel.getRowCount() == 0) {
             DialogUtil.showWarning(this, "Belum ada data laporan untuk dicetak.");
             return;
         }
 
+        String namaLaporan = jenisLaporanComboBox.getSelectedItem().toString();
+        PrinterJob printerJob = PrinterJob.getPrinterJob();
+        printerJob.setJobName(namaLaporan);
+        printerJob.setPrintable(new CetakLaporanPrintable());
+
+        File folderUnduhan = new File(System.getProperty("user.home"), "Downloads");
+        File fileHasil = new File(folderUnduhan, namaLaporan + ".pdf");
+        PrintRequestAttributeSet atribut = new HashPrintRequestAttributeSet();
+        atribut.add(new Destination(fileHasil.toURI()));
+
         try {
-            PrinterJob printerJob = PrinterJob.getPrinterJob();
-            printerJob.setJobName(jenisLaporanComboBox.getSelectedItem().toString());
-            printerJob.setPrintable(new CetakLaporanPrintable());
-            if (printerJob.printDialog()) {
-                printerJob.print();
+            if (!printerJob.printDialog(atribut)) {
+                return;
             }
-        } catch (HeadlessException | PrinterException ex) {
+        } catch (HeadlessException ex) {
             DialogUtil.showError(this, ex.getMessage());
+            return;
+        }
+
+        JDialog dialogProses = DialogUtil.tampilkanProses(this, "Sedang mendownload " + namaLaporan + "...");
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws PrinterException {
+                printerJob.print(atribut);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                dialogProses.dispose();
+                try {
+                    get();
+                    bukaFileHasil(fileHasil);
+                } catch (Exception ex) {
+                    Throwable penyebab = ex.getCause() != null ? ex.getCause() : ex;
+                    DialogUtil.showError(LaporanPanel.this, penyebab.getMessage());
+                }
+            }
+        }.execute();
+    }
+
+    private void bukaFileHasil(File file) {
+        if (!file.exists() || !Desktop.isDesktopSupported()) {
+            return;
+        }
+        try {
+            Desktop.getDesktop().open(file);
+        } catch (IOException ex) {
+            DialogUtil.showWarning(this, "File tersimpan, tetapi gagal dibuka otomatis: " + ex.getMessage());
         }
     }
 
