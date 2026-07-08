@@ -14,16 +14,10 @@ import java.util.List;
 import java.util.Map;
 
 public class PerhitunganTopsisService {
-    private static boolean perhitunganSudahDiproses = false;
-
     private final KaryawanDao karyawanDao = new KaryawanDao();
     private final KriteriaDao kriteriaDao = new KriteriaDao();
     private final PenilaianDao penilaianDao = new PenilaianDao();
     private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
-
-    public static boolean apakahPerhitunganSudahDiproses() {
-        return perhitunganSudahDiproses;
-    }
 
     public List<HasilRanking> hitungDanSimpan() throws SQLException {
         return hitungDetailDanSimpan().getDaftarHasilRanking();
@@ -32,7 +26,6 @@ public class PerhitunganTopsisService {
     public PerhitunganDetail hitungDetailDanSimpan() throws SQLException {
         PerhitunganDetail detail = hitungDetail();
         hasilRankingDao.gantiSemua(detail.getDaftarHasilRanking());
-        perhitunganSudahDiproses = true;
         return detail;
     }
 
