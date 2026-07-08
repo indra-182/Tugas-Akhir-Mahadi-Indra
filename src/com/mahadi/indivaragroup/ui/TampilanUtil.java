@@ -14,6 +14,8 @@ import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
 
 public final class TampilanUtil {
     public static final Color WARNA_GARIS = new Color(55, 65, 81);
@@ -125,6 +127,21 @@ public final class TampilanUtil {
             }
         };
         renderer.setHorizontalAlignment(SwingConstants.CENTER);
-        tabel.getColumnModel().getColumn(0).setCellRenderer(renderer);
+
+        TableCellRenderer headerRendererAsli = tabel.getTableHeader().getDefaultRenderer();
+        TableCellRenderer headerRenderer = (table, value, isSelected, hasFocus, row, column) -> {
+            Component sel = headerRendererAsli.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (sel instanceof JLabel) {
+                ((JLabel) sel).setHorizontalAlignment(SwingConstants.CENTER);
+            }
+            return sel;
+        };
+
+        TableColumn kolomNomor = tabel.getColumnModel().getColumn(0);
+        kolomNomor.setCellRenderer(renderer);
+        kolomNomor.setHeaderRenderer(headerRenderer);
+        kolomNomor.setPreferredWidth(40);
+        kolomNomor.setMaxWidth(50);
+        kolomNomor.setMinWidth(30);
     }
 }
