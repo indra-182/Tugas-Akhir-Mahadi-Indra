@@ -112,6 +112,8 @@ public class PerhitunganTopsisPanel extends JPanel {
             DialogUtil.showInfo(this, "Perhitungan TOPSIS berhasil dilakukan.");
         } catch (SQLException ex) {
             DialogUtil.showError(this, ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            DialogUtil.showWarning(this, ex.getMessage());
         }
     }
 
