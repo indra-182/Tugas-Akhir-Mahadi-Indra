@@ -1,5 +1,6 @@
 package com.mahadi.indivaragroup.ui;
 
+import com.mahadi.indivaragroup.dao.HasilRankingDao;
 import com.mahadi.indivaragroup.dao.KaryawanDao;
 import com.mahadi.indivaragroup.model.Karyawan;
 import com.mahadi.indivaragroup.util.DialogUtil;
@@ -28,6 +29,7 @@ import java.util.regex.Pattern;
 
 public class KaryawanPanel extends JPanel {
     private final KaryawanDao karyawanDao = new KaryawanDao();
+    private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
     private final KaryawanTableModel tableModel = new KaryawanTableModel();
     private final JTable tabel = new JTable(tableModel);
 
@@ -59,6 +61,7 @@ public class KaryawanPanel extends JPanel {
 
         TampilanUtil.rapikanTabel(tabel);
         tabel.setRowSorter(penyaringTabel);
+        TampilanUtil.pasangKolomNomor(tabel);
         isiPanel.add(new JScrollPane(tabel), BorderLayout.CENTER);
         add(isiPanel, BorderLayout.CENTER);
     }
@@ -184,6 +187,7 @@ public class KaryawanPanel extends JPanel {
     private void simpan() {
         try {
             karyawanDao.tambah(bacaForm());
+            hasilRankingDao.hapusSemua();
             DialogUtil.showInfo(this, "Data karyawan berhasil disimpan.");
             bersihkanForm();
             muatData();
@@ -201,6 +205,7 @@ public class KaryawanPanel extends JPanel {
             Karyawan karyawan = bacaForm();
             karyawan.setId(idTerpilih);
             karyawanDao.ubah(karyawan);
+            hasilRankingDao.hapusSemua();
             DialogUtil.showInfo(this, "Data karyawan berhasil diubah.");
             bersihkanForm();
             muatData();
@@ -219,6 +224,7 @@ public class KaryawanPanel extends JPanel {
         }
         try {
             karyawanDao.hapus(idTerpilih);
+            hasilRankingDao.hapusSemua();
             DialogUtil.showInfo(this, "Data karyawan berhasil dihapus.");
             bersihkanForm();
             muatData();
@@ -256,7 +262,7 @@ public class KaryawanPanel extends JPanel {
     }
 
     private static class KaryawanTableModel extends AbstractTableModel {
-        private final String[] kolom = {"ID", "Kode Karyawan", "Nama", "Jabatan", "Status"};
+        private final String[] kolom = {"No", "Kode Karyawan", "Nama", "Jabatan", "Status"};
         private List<Karyawan> data = new ArrayList<>();
 
         public void setData(List<Karyawan> data) {
@@ -287,7 +293,7 @@ public class KaryawanPanel extends JPanel {
         public Object getValueAt(int baris, int kolomIndex) {
             Karyawan karyawan = data.get(baris);
             switch (kolomIndex) {
-                case 0: return karyawan.getId();
+                case 0: return baris + 1;
                 case 1: return karyawan.getKodeKaryawan();
                 case 2: return karyawan.getNama();
                 case 3: return karyawan.getJabatan();
