@@ -26,6 +26,7 @@ import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -219,12 +220,23 @@ public class LaporanPanel extends JPanel {
     }
 
     private void cetakLaporanPdf() {
+        String jenis = jenisLaporanComboBox.getSelectedItem().toString();
+        try {
+            if (LAPORAN_DATA_RANKING.equals(jenis) && hasilRankingDao.ambilSemua().isEmpty()) {
+                DialogUtil.showWarning(this, "Proses Perhitungan Dahulu di Menu Perhitungan");
+                return;
+            }
+        } catch (SQLException ex) {
+            DialogUtil.showError(this, ex.getMessage());
+            return;
+        }
+
         if (tableModel.getRowCount() == 0) {
             DialogUtil.showWarning(this, "Belum ada data laporan untuk dicetak.");
             return;
         }
 
-        String namaLaporan = jenisLaporanComboBox.getSelectedItem().toString();
+        String namaLaporan = jenis;
         PrinterJob printerJob = PrinterJob.getPrinterJob();
         printerJob.setJobName(namaLaporan);
         printerJob.setPrintable(new CetakLaporanPrintable());
