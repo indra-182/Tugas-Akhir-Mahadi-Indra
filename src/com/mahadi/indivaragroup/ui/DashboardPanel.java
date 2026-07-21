@@ -12,6 +12,7 @@ import java.awt.GridLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.sql.SQLException;
+import java.time.Year;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -50,10 +51,11 @@ public class DashboardPanel extends JPanel {
         kartuPanel.removeAll();
 
         try {
+            int tahunSekarang = Year.now().getValue();
             int jumlahKaryawan = karyawanDao.hitungSemua();
             int jumlahKriteria = kriteriaDao.hitungSemua();
-            String statusPenilaian = penilaianDao.apakahPenilaianLengkap() ? "Lengkap" : "Belum Lengkap";
-            String statusRanking = hasilRankingDao.ambilSemua().isEmpty() ? "Siap dihitung" : "Sudah dihitung";
+            String statusPenilaian = penilaianDao.apakahPenilaianLengkap(tahunSekarang) ? "Lengkap" : "Belum Lengkap";
+            String statusRanking = hasilRankingDao.ambilSemua(tahunSekarang).isEmpty() ? "Siap dihitung" : "Sudah dihitung";
 
             kartuPanel.add(buatKartu("Jumlah Karyawan", String.valueOf(jumlahKaryawan)));
             kartuPanel.add(buatKartu("Jumlah Kriteria", String.valueOf(jumlahKriteria)));

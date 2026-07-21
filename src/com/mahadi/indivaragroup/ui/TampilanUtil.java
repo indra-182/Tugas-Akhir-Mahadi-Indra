@@ -5,8 +5,14 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Insets;
+import java.awt.event.ActionListener;
+import java.time.Year;
+import java.util.List;
+import java.util.TreeSet;
 import javax.swing.BorderFactory;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTable;
@@ -116,6 +122,41 @@ public final class TampilanUtil {
         header.setFont(FONT_TEBAL);
         header.setBackground(new Color(243, 244, 246));
         header.setForeground(new Color(55, 65, 81));
+    }
+
+    public static JComboBox<Integer> buatComboBoxTahun(List<Integer> tahunTersedia) {
+        JComboBox<Integer> comboBox = new JComboBox<>();
+        segarkanComboBoxTahun(comboBox, tahunTersedia);
+        return comboBox;
+    }
+
+    /**
+     * Panel-panel penilaian/perhitungan/laporan hanya mengisi tahunComboBox
+     * sekali saat konstruksi. Jika tahun baru ditambahkan (mis. lewat seed
+     * SQL) selagi aplikasi masih berjalan, opsinya baru muncul setelah
+     * combo box ini disegarkan ulang - panggil di componentShown tiap panel.
+     *
+     * Listener sengaja dicopot sementara saat model/seleksi diganti, supaya
+     * pemanggil bebas selalu memuat ulang data setelah memanggil method ini
+     * tanpa risiko memuat dua kali (sekali lewat ActionListener combo box
+     * ini sendiri, sekali lagi lewat pemanggilnya).
+     */
+    public static void segarkanComboBoxTahun(JComboBox<Integer> comboBox, List<Integer> tahunTersedia) {
+        Integer tahunTerpilih = (Integer) comboBox.getSelectedItem();
+        int tahunBerjalan = Year.now().getValue();
+        TreeSet<Integer> tahun = new TreeSet<>((a, b) -> b - a);
+        tahun.addAll(tahunTersedia);
+        tahun.add(tahunBerjalan);
+
+        ActionListener[] listener = comboBox.getActionListeners();
+        for (ActionListener l : listener) {
+            comboBox.removeActionListener(l);
+        }
+        comboBox.setModel(new DefaultComboBoxModel<>(tahun.toArray(new Integer[0])));
+        comboBox.setSelectedItem(tahunTerpilih != null && tahun.contains(tahunTerpilih) ? tahunTerpilih : tahunBerjalan);
+        for (ActionListener l : listener) {
+            comboBox.addActionListener(l);
+        }
     }
 
     public static void pasangKolomNomor(JTable tabel) {

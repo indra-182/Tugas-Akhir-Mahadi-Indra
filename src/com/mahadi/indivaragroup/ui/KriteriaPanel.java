@@ -188,7 +188,7 @@ public class KriteriaPanel extends JPanel {
     private void simpan() {
         try {
             kriteriaDao.tambah(bacaForm());
-            hasilRankingDao.hapusSemua();
+            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data kriteria berhasil disimpan.");
             bersihkanForm();
             muatData();
@@ -206,7 +206,7 @@ public class KriteriaPanel extends JPanel {
             Kriteria kriteria = bacaForm();
             kriteria.setId(idTerpilih);
             kriteriaDao.ubah(kriteria);
-            hasilRankingDao.hapusSemua();
+            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data kriteria berhasil diubah.");
             bersihkanForm();
             muatData();
@@ -225,7 +225,7 @@ public class KriteriaPanel extends JPanel {
         }
         try {
             kriteriaDao.hapus(idTerpilih);
-            hasilRankingDao.hapusSemua();
+            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data kriteria berhasil dihapus.");
             bersihkanForm();
             muatData();

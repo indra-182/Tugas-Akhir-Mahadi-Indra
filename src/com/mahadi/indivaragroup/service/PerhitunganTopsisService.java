@@ -19,24 +19,16 @@ public class PerhitunganTopsisService {
     private final PenilaianDao penilaianDao = new PenilaianDao();
     private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
 
-    public List<HasilRanking> hitungDanSimpan() throws SQLException {
-        return hitungDetailDanSimpan().getDaftarHasilRanking();
-    }
-
-    public PerhitunganDetail hitungDetailDanSimpan() throws SQLException {
-        PerhitunganDetail detail = hitungDetail();
-        hasilRankingDao.gantiSemua(detail.getDaftarHasilRanking());
+    public PerhitunganDetail hitungDetailDanSimpan(int tahun) throws SQLException {
+        PerhitunganDetail detail = hitungDetail(tahun);
+        hasilRankingDao.gantiSemua(detail.getDaftarHasilRanking(), tahun);
         return detail;
     }
 
-    public List<HasilRanking> hitung() throws SQLException {
-        return hitungDetail().getDaftarHasilRanking();
-    }
-
-    public PerhitunganDetail hitungDetail() throws SQLException {
+    public PerhitunganDetail hitungDetail(int tahun) throws SQLException {
         List<Karyawan> daftarKaryawan = karyawanDao.ambilAktif();
         List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
-        Map<Integer, Map<Integer, Double>> matriksPenilaian = penilaianDao.ambilSemuaSebagaiMatriks();
+        Map<Integer, Map<Integer, Double>> matriksPenilaian = penilaianDao.ambilSemuaSebagaiMatriks(tahun);
 
         validasiInput(daftarKaryawan, daftarKriteria, matriksPenilaian);
 

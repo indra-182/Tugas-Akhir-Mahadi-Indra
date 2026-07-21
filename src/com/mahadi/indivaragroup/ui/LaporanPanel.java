@@ -2,11 +2,9 @@ package com.mahadi.indivaragroup.ui;
 
 import com.mahadi.indivaragroup.dao.HasilRankingDao;
 import com.mahadi.indivaragroup.dao.KaryawanDao;
-import com.mahadi.indivaragroup.dao.KriteriaDao;
 import com.mahadi.indivaragroup.dao.PenilaianDao;
 import com.mahadi.indivaragroup.model.HasilRanking;
 import com.mahadi.indivaragroup.model.Karyawan;
-import com.mahadi.indivaragroup.model.Kriteria;
 import com.mahadi.indivaragroup.util.DialogUtil;
 import com.mahadi.indivaragroup.util.NumberUtil;
 import java.awt.BorderLayout;
@@ -28,6 +26,8 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.time.Year;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
 import java.util.List;
@@ -55,21 +55,22 @@ public class LaporanPanel extends JPanel {
     private static final String NAMA_PENANDATANGAN = "Pimpinan PT. Indivara Group";
 
     private static final String LAPORAN_DATA_RANKING = "Laporan Data Ranking";
-    private static final String LAPORAN_DATA_KARYAWAN = "Laporan Data Karyawan";
-    private static final String LAPORAN_DATA_KRITERIA = "Laporan Data Kriteria";
     private static final String LAPORAN_DATA_PENILAIAN = "Laporan Data Penilaian";
+    private static final String LAPORAN_DATA_KARYAWAN = "Laporan Data Karyawan";
+    private static final String LAPORAN_TREN_KARYAWAN = "Laporan Tren Kinerja Karyawan";
 
     private final KaryawanDao karyawanDao = new KaryawanDao();
-    private final KriteriaDao kriteriaDao = new KriteriaDao();
     private final PenilaianDao penilaianDao = new PenilaianDao();
     private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
 
     private final JComboBox<String> jenisLaporanComboBox = new JComboBox<>(new String[]{
         LAPORAN_DATA_RANKING,
+        LAPORAN_DATA_PENILAIAN,
         LAPORAN_DATA_KARYAWAN,
-        LAPORAN_DATA_KRITERIA,
-        LAPORAN_DATA_PENILAIAN
+        LAPORAN_TREN_KARYAWAN
     });
+    private JComboBox<Integer> tahunComboBox;
+    private JComboBox<Karyawan> karyawanComboBox;
     private final DefaultTableModel tableModel = new DefaultTableModel();
     private final JTable tabel = new JTable(tableModel);
     private final JPanel judulPanel = new JPanel(new BorderLayout());
@@ -103,18 +104,57 @@ public class LaporanPanel extends JPanel {
         JButton cetakButton = TampilanUtil.buatTombolAksi("Tambah");
         cetakButton.setText("Cetak");
 
+        tahunComboBox = TampilanUtil.buatComboBoxTahun(daftarTahunAman());
+        karyawanComboBox = new JComboBox<>();
+        muatKaryawanComboBox();
+
         jenisLaporanComboBox.addActionListener(e -> muatLaporan());
+        tahunComboBox.addActionListener(e -> muatLaporan());
+        karyawanComboBox.addActionListener(e -> muatLaporan());
         cetakButton.addActionListener(e -> cetakLaporanPdf());
 
         panelAksi.add(jenisLaporanComboBox);
+        panelAksi.add(tahunComboBox);
+        panelAksi.add(karyawanComboBox);
         panelAksi.add(cetakButton);
         return panelAksi;
+    }
+
+    private List<Integer> daftarTahunAman() {
+        try {
+            return penilaianDao.ambilDaftarTahun();
+        } catch (SQLException ex) {
+            return Collections.emptyList();
+        }
+    }
+
+    private int tahunTerpilih() {
+        Integer tahun = tahunComboBox == null ? null : (Integer) tahunComboBox.getSelectedItem();
+        return tahun != null ? tahun : Year.now().getValue();
+    }
+
+    private void muatKaryawanComboBox() {
+        try {
+            karyawanComboBox.removeAllItems();
+            List<Karyawan> daftarKaryawan = karyawanDao.ambilSemua();
+            daftarKaryawan.forEach(karyawanComboBox::addItem);
+        } catch (SQLException ex) {
+            DialogUtil.showError(this, ex.getMessage());
+        }
+    }
+
+    private void terapkanTampilanSelector(String jenis) {
+        boolean tampilTahun = LAPORAN_DATA_RANKING.equals(jenis) || LAPORAN_DATA_PENILAIAN.equals(jenis);
+        boolean tampilKaryawan = LAPORAN_TREN_KARYAWAN.equals(jenis);
+        tahunComboBox.setVisible(tampilTahun);
+        karyawanComboBox.setVisible(tampilKaryawan);
     }
 
     private void pasangEventPanel() {
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
+                TampilanUtil.segarkanComboBoxTahun(tahunComboBox, daftarTahunAman());
                 jenisLaporanComboBox.setSelectedItem(LAPORAN_DATA_RANKING);
                 muatLaporan();
             }
@@ -126,16 +166,17 @@ public class LaporanPanel extends JPanel {
             String jenis = jenisLaporanComboBox.getSelectedItem().toString();
             judulPanel.removeAll();
             judulPanel.add(TampilanUtil.buatJudul(jenis.toUpperCase()), BorderLayout.CENTER);
+            terapkanTampilanSelector(jenis);
 
             switch (jenis) {
+                case LAPORAN_DATA_PENILAIAN:
+                    muatLaporanPenilaian();
+                    break;
                 case LAPORAN_DATA_KARYAWAN:
                     muatLaporanKaryawan();
                     break;
-                case LAPORAN_DATA_KRITERIA:
-                    muatLaporanKriteria();
-                    break;
-                case LAPORAN_DATA_PENILAIAN:
-                    muatLaporanPenilaian();
+                case LAPORAN_TREN_KARYAWAN:
+                    muatLaporanTrenKaryawan();
                     break;
                 default:
                     muatLaporanRanking();
@@ -147,6 +188,43 @@ public class LaporanPanel extends JPanel {
         } catch (Exception ex) {
             DialogUtil.showError(this, ex.getMessage());
         }
+    }
+
+    private void muatLaporanPenilaian() throws Exception {
+        tableModel.setDataVector(new Object[][]{}, new Object[]{
+            "No", "Kode Karyawan", "Nama Karyawan", "Kode Kriteria", "Kriteria", "Nilai"
+        });
+        List<Object[]> data = penilaianDao.ambilLaporanPenilaian(tahunTerpilih());
+        for (int i = 0; i < data.size(); i++) {
+            Object[] baris = data.get(i);
+            Object[] barisBaru = new Object[baris.length + 1];
+            barisBaru[0] = i + 1;
+            System.arraycopy(baris, 0, barisBaru, 1, baris.length);
+            tableModel.addRow(barisBaru);
+        }
+    }
+
+    private void muatLaporanRanking() throws Exception {
+        int tahun = tahunTerpilih();
+        List<HasilRanking> daftarRanking = hasilRankingDao.ambilSemua(tahun);
+        if (daftarRanking.isEmpty()) {
+            tampilkanPesanInfo(tahun == Year.now().getValue()
+                    ? "Proses Perhitungan Dahulu untuk Menampilkan Data"
+                    : "Belum ada data hasil perhitungan untuk tahun ini.");
+            return;
+        }
+
+        tableModel.setDataVector(new Object[][]{}, new Object[]{
+            "Peringkat", "Kode Karyawan", "Nama Karyawan", "Nilai TOPSIS"
+        });
+        daftarRanking.forEach((ranking) -> {
+            tableModel.addRow(new Object[]{
+                ranking.getPeringkat(),
+                ranking.getKodeKaryawan(),
+                ranking.getNamaKaryawan(),
+                NumberUtil.format(ranking.getNilaiTopsis())
+            });
+        });
     }
 
     private void muatLaporanKaryawan() throws Exception {
@@ -164,74 +242,43 @@ public class LaporanPanel extends JPanel {
         }
     }
 
-    private void muatLaporanKriteria() throws Exception {
-        tableModel.setDataVector(new Object[][]{}, new Object[]{"No", "Kode", "Nama Kriteria", "Bobot", "Jenis"});
-        List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
-        for (int i = 0; i < daftarKriteria.size(); i++) {
-            Kriteria kriteria = daftarKriteria.get(i);
-            tableModel.addRow(new Object[]{
-                i + 1,
-                kriteria.getKode(),
-                kriteria.getNama(),
-                kriteria.getBobot(),
-                kriteria.getTipe()
-            });
-        }
-    }
-
-    private void muatLaporanPenilaian() throws Exception {
-        tableModel.setDataVector(new Object[][]{}, new Object[]{
-            "No", "Kode Karyawan", "Nama Karyawan", "Kode Kriteria", "Kriteria", "Nilai"
-        });
-        List<Object[]> data = penilaianDao.ambilLaporanPenilaian();
-        for (int i = 0; i < data.size(); i++) {
-            Object[] baris = data.get(i);
-            Object[] barisBaru = new Object[baris.length + 1];
-            barisBaru[0] = i + 1;
-            System.arraycopy(baris, 0, barisBaru, 1, baris.length);
-            tableModel.addRow(barisBaru);
-        }
-    }
-
-    private void muatLaporanRanking() throws Exception {
-        List<HasilRanking> daftarRanking = hasilRankingDao.ambilSemua();
-        if (daftarRanking.isEmpty()) {
-            tampilkanPesanProsesPerhitungan();
+    private void muatLaporanTrenKaryawan() throws Exception {
+        Karyawan karyawanTerpilih = (Karyawan) karyawanComboBox.getSelectedItem();
+        if (karyawanTerpilih == null) {
+            tampilkanPesanInfo("Pilih karyawan untuk menampilkan tren kinerjanya");
             return;
         }
 
-        tableModel.setDataVector(new Object[][]{}, new Object[]{
-            "Peringkat", "Kode Karyawan", "Nama Karyawan", "Nilai TOPSIS"
-        });
-        daftarRanking.forEach((ranking) -> {
+        List<HasilRanking> daftarRiwayat = hasilRankingDao.ambilRiwayatByKaryawan(karyawanTerpilih.getId());
+        if (daftarRiwayat.isEmpty()) {
+            tampilkanPesanInfo("Proses Perhitungan Dahulu untuk Menampilkan Data");
+            return;
+        }
+
+        tableModel.setDataVector(new Object[][]{}, new Object[]{"Tahun", "Peringkat", "Nilai TOPSIS"});
+        daftarRiwayat.forEach((ranking) -> {
             tableModel.addRow(new Object[]{
+                ranking.getTahun(),
                 ranking.getPeringkat(),
-                ranking.getKodeKaryawan(),
-                ranking.getNamaKaryawan(),
                 NumberUtil.format(ranking.getNilaiTopsis())
             });
         });
     }
 
-    private void tampilkanPesanProsesPerhitungan() {
+    private void tampilkanPesanInfo(String pesan) {
         tableModel.setDataVector(new Object[][]{
-            {"Proses Perhitungan Dahulu untuk Menampilkan Data"}
+            {pesan}
         }, new Object[]{"Informasi"});
+    }
+
+    private boolean sedangMenampilkanPesanInfo() {
+        return tableModel.getColumnCount() == 1 && "Informasi".equals(tableModel.getColumnName(0));
     }
 
     private void cetakLaporanPdf() {
         String jenis = jenisLaporanComboBox.getSelectedItem().toString();
-        try {
-            if (LAPORAN_DATA_RANKING.equals(jenis) && hasilRankingDao.ambilSemua().isEmpty()) {
-                DialogUtil.showWarning(this, "Proses Perhitungan Dahulu di Menu Perhitungan");
-                return;
-            }
-        } catch (SQLException ex) {
-            DialogUtil.showError(this, ex.getMessage());
-            return;
-        }
 
-        if (tableModel.getRowCount() == 0) {
+        if (tableModel.getRowCount() == 0 || sedangMenampilkanPesanInfo()) {
             DialogUtil.showWarning(this, "Belum ada data laporan untuk dicetak.");
             return;
         }
@@ -392,7 +439,7 @@ public class LaporanPanel extends JPanel {
         private void gambarTandaTangan(Graphics2D grafik, int xAwal, int yAwal, int lebarKonten) {
             int lebarAreaTandaTangan = 190;
             int xTandaTangan = xAwal + lebarKonten - lebarAreaTandaTangan - 12;
-            String tanggal = new SimpleDateFormat("d MMMM yyyy", new Locale("id", "ID")).format(new Date());
+            String tanggal = new SimpleDateFormat("EEEE d MMMM yyyy", new Locale("id", "ID")).format(new Date());
 
             grafik.setFont(fontNormal);
             grafik.setColor(Color.BLACK);

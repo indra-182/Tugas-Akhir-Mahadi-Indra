@@ -13,6 +13,8 @@ import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,11 +41,14 @@ public class PenilaianPanel extends JPanel {
     private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
 
     private final JComboBox<Karyawan> karyawanComboBox = new JComboBox<>();
+    private JComboBox<Integer> tahunComboBox;
     private final JTextField pencarianField = new TeksPlaceholderField(
             "Cari berdasarkan kode kriteria", 28);
     private final PenilaianTableModel tableModel = new PenilaianTableModel();
     private final JTable tabel = new JTable(tableModel);
     private final TableRowSorter<PenilaianTableModel> penyaringTabel = new TableRowSorter<>(tableModel);
+    private JButton ubahButton;
+    private JButton hapusButton;
 
     public PenilaianPanel() {
         setLayout(new BorderLayout(10, 20));
@@ -87,13 +92,22 @@ public class PenilaianPanel extends JPanel {
         batas.gridx = 0;
         batas.gridy = 1;
         batas.weightx = 0;
+        panelInput.add(new JLabel("Tahun"), batas);
+        batas.gridx = 1;
+        batas.weightx = 1;
+        tahunComboBox = TampilanUtil.buatComboBoxTahun(daftarTahunAman());
+        panelInput.add(tahunComboBox, batas);
+
+        batas.gridx = 0;
+        batas.gridy = 2;
+        batas.weightx = 0;
         panelInput.add(new JLabel("Search Data"), batas);
         batas.gridx = 1;
         batas.weightx = 1;
         panelInput.add(pencarianField, batas);
 
-        JButton ubahButton = TampilanUtil.buatTombolAksi("Ubah");
-        JButton hapusButton = TampilanUtil.buatTombolAksi("Hapus");
+        ubahButton = TampilanUtil.buatTombolAksi("Ubah");
+        hapusButton = TampilanUtil.buatTombolAksi("Hapus");
 
         ubahButton.addActionListener(e -> simpanPenilaian());
         hapusButton.addActionListener(e -> DialogUtil.showInfo(this, "Isi nilai 0 pada tabel jika nilai penilaian ingin dikosongkan."));
@@ -110,6 +124,7 @@ public class PenilaianPanel extends JPanel {
 
     private void pasangEvent() {
         karyawanComboBox.addActionListener(e -> muatKriteriaDanNilai());
+        tahunComboBox.addActionListener(e -> muatKriteriaDanNilai());
         pencarianField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -124,6 +139,12 @@ public class PenilaianPanel extends JPanel {
             @Override
             public void changedUpdate(DocumentEvent e) {
                 saringData();
+            }
+        });
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                TampilanUtil.segarkanComboBoxTahun(tahunComboBox, daftarTahunAman());
             }
         });
     }
@@ -156,6 +177,23 @@ public class PenilaianPanel extends JPanel {
         }
     }
 
+    private List<Integer> daftarTahunAman() {
+        try {
+            return penilaianDao.ambilDaftarTahun();
+        } catch (SQLException ex) {
+            return java.util.Collections.emptyList();
+        }
+    }
+
+    private int tahunTerpilih() {
+        Integer tahun = tahunComboBox == null ? null : (Integer) tahunComboBox.getSelectedItem();
+        return tahun != null ? tahun : java.time.Year.now().getValue();
+    }
+
+    private boolean tahunBerjalanTerpilih() {
+        return tahunTerpilih() == java.time.Year.now().getValue();
+    }
+
     private void muatKriteriaDanNilai() {
         try {
             Karyawan karyawanTerpilih = (Karyawan) karyawanComboBox.getSelectedItem();
@@ -163,26 +201,34 @@ public class PenilaianPanel extends JPanel {
             Map<Integer, Double> daftarNilai;
             daftarNilai = karyawanTerpilih == null
                     ? new java.util.HashMap<>()
-                    : penilaianDao.ambilBerdasarkanKaryawan(karyawanTerpilih.getId());
+                    : penilaianDao.ambilBerdasarkanKaryawan(karyawanTerpilih.getId(), tahunTerpilih());
             tableModel.setData(daftarKriteria, daftarNilai);
+            boolean tahunBerjalan = tahunBerjalanTerpilih();
+            ubahButton.setEnabled(tahunBerjalan);
+            hapusButton.setEnabled(tahunBerjalan);
         } catch (SQLException ex) {
             DialogUtil.showError(this, ex.getMessage());
         }
     }
 
     private void simpanPenilaian() {
+        if (!tahunBerjalanTerpilih()) {
+            DialogUtil.showWarning(this, "Penilaian tahun sebelumnya sudah final dan tidak bisa diubah.");
+            return;
+        }
         Karyawan karyawanTerpilih = (Karyawan) karyawanComboBox.getSelectedItem();
         if (karyawanTerpilih == null) {
             DialogUtil.showWarning(this, "Data karyawan aktif belum tersedia.");
             return;
         }
+        int tahun = tahunTerpilih();
         try {
             for (int i = 0; i < tableModel.getRowCount(); i++) {
                 Kriteria kriteria = tableModel.ambilKriteria(i);
                 double nilai = tableModel.ambilNilai(i);
-                penilaianDao.simpan(karyawanTerpilih.getId(), kriteria.getId(), nilai);
+                penilaianDao.simpan(karyawanTerpilih.getId(), kriteria.getId(), tahun, nilai);
             }
-            hasilRankingDao.hapusSemua();
+            hasilRankingDao.hapusSemua(tahun);
             DialogUtil.showInfo(this, "Penilaian berhasil disimpan.");
         } catch (SQLException ex) {
             DialogUtil.showError(this, ex.getMessage());
@@ -232,7 +278,7 @@ public class PenilaianPanel extends JPanel {
 
         @Override
         public boolean isCellEditable(int baris, int kolomIndex) {
-            return kolomIndex == 5;
+            return kolomIndex == 5 && tahunBerjalanTerpilih();
         }
 
         @Override

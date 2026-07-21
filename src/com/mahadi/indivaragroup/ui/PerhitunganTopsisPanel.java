@@ -1,5 +1,6 @@
 package com.mahadi.indivaragroup.ui;
 
+import com.mahadi.indivaragroup.dao.HasilRankingDao;
 import com.mahadi.indivaragroup.dao.KaryawanDao;
 import com.mahadi.indivaragroup.dao.KriteriaDao;
 import com.mahadi.indivaragroup.dao.PenilaianDao;
@@ -17,11 +18,17 @@ import java.awt.FlowLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.sql.SQLException;
+import java.time.Year;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -32,10 +39,13 @@ public class PerhitunganTopsisPanel extends JPanel {
     private final KaryawanDao karyawanDao = new KaryawanDao();
     private final KriteriaDao kriteriaDao = new KriteriaDao();
     private final PenilaianDao penilaianDao = new PenilaianDao();
+    private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
     private final PerhitunganTopsisService topsisService = new PerhitunganTopsisService();
 
     private final JPanel tabelPanel = new JPanel();
     private final JLabel karyawanTerbaikLabel = new JLabel("Karyawan terbaik: -");
+    private JComboBox<Integer> tahunComboBox;
+    private JButton prosesButton;
 
     public PerhitunganTopsisPanel() {
         setLayout(new BorderLayout(10, 24));
@@ -53,8 +63,12 @@ public class PerhitunganTopsisPanel extends JPanel {
         isiPanel.setBackground(Color.WHITE);
         JPanel tombolPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         tombolPanel.setBackground(Color.WHITE);
-        JButton prosesButton = TampilanUtil.buatTombolAksi("Proses");
+        prosesButton = TampilanUtil.buatTombolAksi("Proses");
         prosesButton.addActionListener(e -> prosesPerhitungan());
+        tahunComboBox = TampilanUtil.buatComboBoxTahun(daftarTahunAman());
+        tahunComboBox.addActionListener(e -> muatDataAwal());
+        tombolPanel.add(new JLabel("Tahun:"));
+        tombolPanel.add(tahunComboBox);
         tombolPanel.add(prosesButton);
 
         tabelPanel.setLayout(new BoxLayout(tabelPanel, BoxLayout.Y_AXIS));
@@ -69,23 +83,80 @@ public class PerhitunganTopsisPanel extends JPanel {
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
+                TampilanUtil.segarkanComboBoxTahun(tahunComboBox, daftarTahunAman());
                 muatDataAwal();
             }
         });
     }
 
+    private List<Integer> daftarTahunAman() {
+        try {
+            return penilaianDao.ambilDaftarTahun();
+        } catch (SQLException ex) {
+            return Collections.emptyList();
+        }
+    }
+
+    private int tahunTerpilih() {
+        Integer tahun = (Integer) tahunComboBox.getSelectedItem();
+        return tahun != null ? tahun : Year.now().getValue();
+    }
+
     private void muatDataAwal() {
         try {
-            List<Karyawan> daftarKaryawan = karyawanDao.ambilAktif();
-            List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
-            Map<Integer, Map<Integer, Double>> matriksPenilaian = penilaianDao.ambilSemuaSebagaiMatriks();
+            int tahun = tahunTerpilih();
+            boolean tahunBerjalan = tahun == Year.now().getValue();
+            prosesButton.setEnabled(tahunBerjalan);
 
-            DefaultTableModel modelDataAwal = buatModelDataAwal(daftarKaryawan, daftarKriteria, matriksPenilaian);
-            tampilkanTabelTunggal("Data Penilaian Awal", modelDataAwal);
-            karyawanTerbaikLabel.setText("Karyawan terbaik: -");
+            List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
+            Map<Integer, Map<Integer, Double>> matriksPenilaian = penilaianDao.ambilSemuaSebagaiMatriks(tahun);
+
+            tabelPanel.removeAll();
+
+            if (tahunBerjalan) {
+                List<Karyawan> daftarKaryawan = karyawanDao.ambilAktif();
+                tambahBagianTabel("Data Penilaian Awal", buatModelDataAwal(daftarKaryawan, daftarKriteria, matriksPenilaian));
+                karyawanTerbaikLabel.setText("Karyawan terbaik: -");
+            } else {
+                List<HasilRanking> daftarHasilRanking = hasilRankingDao.ambilSemua(tahun);
+                List<Karyawan> daftarKaryawanTerhitung = karyawanUntukHasilRanking(daftarHasilRanking);
+                tambahBagianTabel("Data Penilaian Awal", buatModelDataAwal(daftarKaryawanTerhitung, daftarKriteria, matriksPenilaian));
+                tambahBagianTabel("Hasil Ranking TOPSIS", buatModelHasilRanking(daftarHasilRanking));
+                if (daftarHasilRanking.isEmpty()) {
+                    karyawanTerbaikLabel.setText("Karyawan terbaik: -");
+                } else {
+                    HasilRanking terbaik = daftarHasilRanking.get(0);
+                    karyawanTerbaikLabel.setText("Karyawan terbaik: " + terbaik.getNamaKaryawan()
+                            + " dengan nilai TOPSIS " + NumberUtil.format(terbaik.getNilaiTopsis()));
+                }
+            }
+
+            tabelPanel.revalidate();
+            tabelPanel.repaint();
         } catch (SQLException ex) {
             DialogUtil.showError(this, ex.getMessage());
         }
+    }
+
+    /**
+     * Untuk tahun lampau, "Data Penilaian Awal" harus menampilkan karyawan
+     * yang sama persis dengan yang muncul di "Hasil Ranking TOPSIS" (hasil
+     * perhitungan yang sudah dibekukan) - bukan daftar karyawan aktif saat
+     * ini, yang bisa saja sudah berubah (mis. dinonaktifkan) sejak tahun itu
+     * dihitung.
+     */
+    private List<Karyawan> karyawanUntukHasilRanking(List<HasilRanking> daftarHasilRanking) throws SQLException {
+        Set<Integer> idTerhitung = new HashSet<>();
+        for (HasilRanking hasilRanking : daftarHasilRanking) {
+            idTerhitung.add(hasilRanking.getIdKaryawan());
+        }
+        List<Karyawan> hasil = new ArrayList<>();
+        for (Karyawan karyawan : karyawanDao.ambilSemua()) {
+            if (idTerhitung.contains(karyawan.getId())) {
+                hasil.add(karyawan);
+            }
+        }
+        return hasil;
     }
 
     private Object[] buatKolomDataAwal(List<Kriteria> daftarKriteria) {
@@ -101,7 +172,7 @@ public class PerhitunganTopsisPanel extends JPanel {
 
     private void prosesPerhitungan() {
         try {
-            PerhitunganDetail detail = topsisService.hitungDetailDanSimpan();
+            PerhitunganDetail detail = topsisService.hitungDetailDanSimpan(tahunTerpilih());
             tampilkanDetailPerhitungan(detail);
             List<HasilRanking> daftarHasilRanking = detail.getDaftarHasilRanking();
             if (!daftarHasilRanking.isEmpty()) {
@@ -126,13 +197,6 @@ public class PerhitunganTopsisPanel extends JPanel {
         tambahBagianTabel("5. Solusi Ideal Positif dan Negatif", buatModelSolusiIdeal(detail));
         tambahBagianTabel("6. Jarak Solusi dan Nilai Preferensi", buatModelJarakPreferensi(detail));
         tambahBagianTabel("7. Hasil Ranking TOPSIS", buatModelHasilRanking(detail.getDaftarHasilRanking()));
-        tabelPanel.revalidate();
-        tabelPanel.repaint();
-    }
-
-    private void tampilkanTabelTunggal(String judul, DefaultTableModel model) {
-        tabelPanel.removeAll();
-        tambahBagianTabel(judul, model);
         tabelPanel.revalidate();
         tabelPanel.repaint();
     }

@@ -4,6 +4,7 @@ public class Penilaian {
     private int id;
     private int idKaryawan;
     private int idKriteria;
+    private int tahun;
     private double nilai;
 
     public int getId() {
@@ -28,6 +29,14 @@ public class Penilaian {
 
     public void setIdKriteria(int idKriteria) {
         this.idKriteria = idKriteria;
+    }
+
+    public int getTahun() {
+        return tahun;
+    }
+
+    public void setTahun(int tahun) {
+        this.tahun = tahun;
     }
 
     public double getNilai() {

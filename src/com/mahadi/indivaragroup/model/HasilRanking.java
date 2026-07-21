@@ -2,6 +2,7 @@ package com.mahadi.indivaragroup.model;
 
 public class HasilRanking {
     private int idKaryawan;
+    private int tahun;
     private String kodeKaryawan;
     private String namaKaryawan;
     private String divisi;
@@ -14,6 +15,14 @@ public class HasilRanking {
 
     public void setIdKaryawan(int idKaryawan) {
         this.idKaryawan = idKaryawan;
+    }
+
+    public int getTahun() {
+        return tahun;
+    }
+
+    public void setTahun(int tahun) {
+        this.tahun = tahun;
     }
 
     public String getKodeKaryawan() {

@@ -10,8 +10,11 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -187,7 +190,7 @@ public class KaryawanPanel extends JPanel {
     private void simpan() {
         try {
             karyawanDao.tambah(bacaForm());
-            hasilRankingDao.hapusSemua();
+            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data karyawan berhasil disimpan.");
             bersihkanForm();
             muatData();
@@ -205,7 +208,7 @@ public class KaryawanPanel extends JPanel {
             Karyawan karyawan = bacaForm();
             karyawan.setId(idTerpilih);
             karyawanDao.ubah(karyawan);
-            hasilRankingDao.hapusSemua();
+            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data karyawan berhasil diubah.");
             bersihkanForm();
             muatData();
@@ -224,7 +227,7 @@ public class KaryawanPanel extends JPanel {
         }
         try {
             karyawanDao.hapus(idTerpilih);
-            hasilRankingDao.hapusSemua();
+            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data karyawan berhasil dihapus.");
             bersihkanForm();
             muatData();
@@ -262,8 +265,21 @@ public class KaryawanPanel extends JPanel {
     }
 
     private static class KaryawanTableModel extends AbstractTableModel {
-        private final String[] kolom = {"No", "Kode Karyawan", "Nama", "Jabatan", "Status"};
+        private final String[] kolom = {"No", "Kode Karyawan", "Nama", "Jabatan", "Tanggal Masuk", "Status"};
+        private static final SimpleDateFormat FORMAT_DB = new SimpleDateFormat("yyyy-MM-dd");
+        private static final SimpleDateFormat FORMAT_TAMPIL = new SimpleDateFormat("d MMMM yyyy", new Locale("id", "ID"));
         private List<Karyawan> data = new ArrayList<>();
+
+        private String formatTanggalMasuk(String tanggalMasuk) {
+            if (tanggalMasuk == null || tanggalMasuk.isEmpty()) {
+                return "";
+            }
+            try {
+                return FORMAT_TAMPIL.format(FORMAT_DB.parse(tanggalMasuk));
+            } catch (ParseException ex) {
+                return tanggalMasuk;
+            }
+        }
 
         public void setData(List<Karyawan> data) {
             this.data = data;
@@ -297,7 +313,8 @@ public class KaryawanPanel extends JPanel {
                 case 1: return karyawan.getKodeKaryawan();
                 case 2: return karyawan.getNama();
                 case 3: return karyawan.getJabatan();
-                case 4: return karyawan.getStatus();
+                case 4: return formatTanggalMasuk(karyawan.getTanggalMasuk());
+                case 5: return karyawan.getStatus();
                 default: return "";
             }
         }
