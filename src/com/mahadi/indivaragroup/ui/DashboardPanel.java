@@ -60,13 +60,13 @@ public class DashboardPanel extends JPanel {
             kartuPanel.add(buatKartu("Jumlah Karyawan", String.valueOf(jumlahKaryawan)));
             kartuPanel.add(buatKartu("Jumlah Kriteria", String.valueOf(jumlahKriteria)));
             kartuPanel.add(buatKartu("Data Penilaian", statusPenilaian));
-            kartuPanel.add(buatKartu("Ranking Terbaik", statusRanking));
+            kartuPanel.add(buatKartu("Ranking Terbaik (" + tahunSekarang + ")", statusRanking));
         } catch (SQLException ex) {
             DialogUtil.showError(this, ex.getMessage());
             kartuPanel.add(buatKartu("Jumlah Karyawan", "-"));
             kartuPanel.add(buatKartu("Jumlah Kriteria", "-"));
             kartuPanel.add(buatKartu("Data Penilaian", "-"));
-            kartuPanel.add(buatKartu("Ranking Terbaik", "-"));
+            kartuPanel.add(buatKartu("Ranking Terbaik (" + Year.now().getValue() + ")", "-"));
         }
 
         kartuPanel.revalidate();

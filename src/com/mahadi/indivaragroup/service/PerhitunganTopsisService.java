@@ -4,9 +4,12 @@ import com.mahadi.indivaragroup.dao.HasilRankingDao;
 import com.mahadi.indivaragroup.dao.KaryawanDao;
 import com.mahadi.indivaragroup.dao.KriteriaDao;
 import com.mahadi.indivaragroup.dao.PenilaianDao;
+import com.mahadi.indivaragroup.dao.PerhitunganSnapshotDao;
 import com.mahadi.indivaragroup.model.HasilRanking;
 import com.mahadi.indivaragroup.model.Karyawan;
 import com.mahadi.indivaragroup.model.Kriteria;
+import com.mahadi.indivaragroup.model.PerhitunganSnapshot;
+import java.time.Year;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,17 +21,47 @@ public class PerhitunganTopsisService {
     private final KriteriaDao kriteriaDao = new KriteriaDao();
     private final PenilaianDao penilaianDao = new PenilaianDao();
     private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
+    private final PerhitunganSnapshotDao snapshotDao = new PerhitunganSnapshotDao();
 
     public PerhitunganDetail hitungDetailDanSimpan(int tahun) throws SQLException {
         PerhitunganDetail detail = hitungDetail(tahun);
         hasilRankingDao.gantiSemua(detail.getDaftarHasilRanking(), tahun);
+        snapshotDao.simpan(tahun, detail);
         return detail;
+    }
+
+    public PerhitunganDetail ambilDetailHistoris(int tahun) throws SQLException {
+        if (tahun == Year.now().getValue()) {
+            throw new IllegalArgumentException("Tahun berjalan harus diproses melalui tombol Proses.");
+        }
+        if (snapshotDao.ada(tahun)) {
+            PerhitunganSnapshot snapshot = snapshotDao.ambil(tahun);
+            return hitungDetail(snapshot.getKaryawan(), snapshot.getKriteria(), snapshot.getPenilaian());
+        }
+        List<Karyawan> daftarKaryawan = karyawanDao.ambilDinilaiPadaTahun(tahun);
+        List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
+        Map<Integer, Map<Integer, Double>> matriks = penilaianDao.ambilSemuaSebagaiMatriks(tahun);
+        PerhitunganDetail detail = hitungDetail(daftarKaryawan, daftarKriteria, matriks);
+        hasilRankingDao.gantiSemua(detail.getDaftarHasilRanking(), tahun);
+        snapshotDao.simpan(tahun, detail);
+        return detail;
+    }
+
+    public void batalkanTahunBerjalan(int tahun) throws SQLException {
+        hasilRankingDao.hapusSemua(tahun);
+        snapshotDao.hapus(tahun);
     }
 
     public PerhitunganDetail hitungDetail(int tahun) throws SQLException {
         List<Karyawan> daftarKaryawan = karyawanDao.ambilAktif();
         List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
         Map<Integer, Map<Integer, Double>> matriksPenilaian = penilaianDao.ambilSemuaSebagaiMatriks(tahun);
+
+        return hitungDetail(daftarKaryawan, daftarKriteria, matriksPenilaian);
+    }
+
+    private PerhitunganDetail hitungDetail(List<Karyawan> daftarKaryawan, List<Kriteria> daftarKriteria,
+            Map<Integer, Map<Integer, Double>> matriksPenilaian) {
 
         validasiInput(daftarKaryawan, daftarKriteria, matriksPenilaian);
 
@@ -176,7 +209,7 @@ public class PerhitunganTopsisService {
     private void validasiInput(List<Karyawan> daftarKaryawan, List<Kriteria> daftarKriteria,
             Map<Integer, Map<Integer, Double>> matriksPenilaian) {
         if (daftarKaryawan.isEmpty()) {
-            throw new IllegalArgumentException("Data karyawan aktif belum tersedia.");
+            throw new IllegalArgumentException("Data karyawan yang dinilai belum tersedia.");
         }
         if (daftarKriteria.isEmpty()) {
             throw new IllegalArgumentException("Data kriteria belum tersedia.");
@@ -292,6 +325,16 @@ public class PerhitunganTopsisService {
 
         public List<HasilRanking> getDaftarHasilRanking() {
             return daftarHasilRanking;
+        }
+
+        public Map<Integer, Map<Integer, Double>> getMatriksPenilaian() {
+            Map<Integer, Map<Integer, Double>> hasil = new java.util.HashMap<Integer, Map<Integer, Double>>();
+            for (int i = 0; i < daftarKaryawan.size(); i++) {
+                Map<Integer, Double> nilai = new java.util.HashMap<Integer, Double>();
+                for (int j = 0; j < daftarKriteria.size(); j++) nilai.put(daftarKriteria.get(j).getId(), matriksKeputusan[i][j]);
+                hasil.put(daftarKaryawan.get(i).getId(), nilai);
+            }
+            return hasil;
         }
     }
 }

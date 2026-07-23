@@ -1,6 +1,7 @@
 package com.mahadi.indivaragroup.ui;
 
 import com.mahadi.indivaragroup.dao.HasilRankingDao;
+import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
 import com.mahadi.indivaragroup.dao.KaryawanDao;
 import com.mahadi.indivaragroup.dao.KriteriaDao;
 import com.mahadi.indivaragroup.dao.PenilaianDao;
@@ -39,6 +40,7 @@ public class PenilaianPanel extends JPanel {
     private final KriteriaDao kriteriaDao = new KriteriaDao();
     private final PenilaianDao penilaianDao = new PenilaianDao();
     private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
+    private final PerhitunganTopsisService topsisService = new PerhitunganTopsisService();
 
     private final JComboBox<Karyawan> karyawanComboBox = new JComboBox<>();
     private JComboBox<Integer> tahunComboBox;
@@ -228,7 +230,7 @@ public class PenilaianPanel extends JPanel {
                 double nilai = tableModel.ambilNilai(i);
                 penilaianDao.simpan(karyawanTerpilih.getId(), kriteria.getId(), tahun, nilai);
             }
-            hasilRankingDao.hapusSemua(tahun);
+            topsisService.batalkanTahunBerjalan(tahun);
             DialogUtil.showInfo(this, "Penilaian berhasil disimpan.");
         } catch (SQLException ex) {
             DialogUtil.showError(this, ex.getMessage());

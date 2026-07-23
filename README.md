@@ -1,139 +1,72 @@
 # SPK Penentuan Karyawan Terbaik Menggunakan Metode TOPSIS
 
-Project ini dibuat untuk Tugas Akhir dengan judul:
+Project Tugas Akhir:
 
 **Sistem Pendukung Keputusan Penentuan Karyawan Terbaik pada PT Indivara Group Menggunakan Metode TOPSIS**
 
-Teknologi yang digunakan:
+## Teknologi
 
-- Java 1.8
-- Java Swing
-- NetBeans 8.2 (Ant project)
-- MySQL (lokal atau cloud Aiven)
-- JDBC + MySQL Connector/J 8.0.33
+- Java 8, Java Swing, dan NetBeans 8.2 (Ant project)
+- PostgreSQL pada Supabase
+- PostgreSQL JDBC Driver 42.7.13
 - Metode TOPSIS
 
 ## Fitur
 
 1. Login admin.
-2. Kelola data karyawan sebagai alternatif.
-3. Kelola data kriteria, bobot, dan tipe kriteria benefit/cost.
-4. Input nilai penilaian karyawan per kriteria.
-5. Perhitungan TOPSIS otomatis beserta tampilan matriks antara.
-6. Ranking karyawan terbaik berdasarkan nilai preferensi terbesar.
-7. Cetak laporan (karyawan, kriteria, penilaian, ranking) menggunakan fitur print Swing.
-8. Validasi cetak: laporan ranking hanya bisa dicetak setelah perhitungan diproses.
+2. Kelola data karyawan, kriteria, dan nilai penilaian per tahun.
+3. Perhitungan TOPSIS beserta matriks antara dan ranking.
+4. Cetak laporan karyawan, kriteria, penilaian, ranking, dan tren.
 
-## Struktur Project
+## Menyiapkan Supabase
 
-```text
-src/com/mahadi/indivaragroup
-├── dao       -> akses database
-├── model     -> entity/model data
-├── service   -> business logic, termasuk TOPSIS
-├── ui        -> Java Swing form/panel
-└── util      -> helper koneksi, dialog, angka, password
-```
+1. Buat project Supabase PostgreSQL dan catat detail **Session Pooler** pada dashboard `Connect`.
+2. Pada Supabase SQL Editor, jalankan berurutan:
 
-Nama class utama memakai bahasa Indonesia, misalnya `Karyawan`, `Kriteria`, `Penilaian`,
-`HasilRanking`, `KaryawanDao`, `KriteriaDao`, `PenilaianDao`, dan
-`PerhitunganTopsisService`.
+   ```text
+   database/db_topsis_indivara_group.sql
+   database/seed_penilaian_2024.sql
+   database/seed_penilaian_2025.sql
+   ```
 
-## Cara Menjalankan
+   Skrip utama membuat admin demo, 100 karyawan, enam kriteria, dan penilaian tahun berjalan. Dua skrip seed menambahkan periode 2024 dan 2025.
+   Untuk database yang sudah ada, jalankan juga `database/migrasi_snapshot_perhitungan.sql`. Saat periode lampau pertama kali dibuka, aplikasi membuat snapshot TOPSIS yang membekukan kriteria, peserta, nilai, dan ranking periode tersebut.
+3. Pada `database/buat_role_aplikasi.sql`, ganti `GANTI_DENGAN_PASSWORD_KUAT` dengan password khusus aplikasi, lalu jalankan sebagai pemilik project. Skrip memberi role `app_topsis` akses ke skema aplikasi, mengaktifkan Row Level Security (RLS), dan memberi policy hanya untuk role tersebut.
+4. Isi `src/config.properties` memakai host, port, nama database, nama pengguna pooler, dan password role aplikasi. URL harus tetap memakai `sslmode=require`.
 
-### 1. Import Database
+`config.properties` sengaja ikut source dan JAR karena DVD akademik harus langsung berjalan. Jangan unggah repository ke publik; jadikan repository GitHub **private** dan jangan gunakan kredensial pemilik Supabase pada file ini.
 
-Jalankan MySQL lokal, lalu import file:
+## Menjalankan aplikasi
 
-```text
-database/db_topsis_indivara_group.sql
-```
+1. Buka project di NetBeans.
+2. Pastikan `lib/postgresql-42.7.13.jar` tersedia dan project memakai Java 8 atau lebih baru.
+3. Jalankan **Clean and Build**, kemudian **Run**.
+4. JAR ada pada `dist/SPK-TOPSIS-Indivara-Group.jar`. Jalankan dari folder hasil build agar folder `lib/` pada classpath manifest ikut tersedia.
 
-Bisa lewat phpMyAdmin atau command line:
-
-```text
-mysql -u root -p < database/db_topsis_indivara_group.sql
-```
-
-Database yang dibuat bernama `db_topsis_indivara_group`, berisi tabel `pengguna`,
-`karyawan`, `kriteria`, `penilaian`, dan `hasil_ranking`, lengkap dengan data sample
-(100 karyawan, 5 kriteria, 500 nilai penilaian).
-
-### 2. Buat File Konfigurasi Database
-
-File `src/config.properties` **tidak ikut repository** karena berisi kredensial.
-Buat file tersebut secara manual dengan isi:
-
-```properties
-db.driver=com.mysql.cj.jdbc.Driver
-
-# --- LOKAL (MySQL di komputer sendiri) ---
-db.url=jdbc:mysql://localhost:3306/db_topsis_indivara_group?sslMode=DISABLED&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8&connectTimeout=10000
-db.user=root
-db.password=ISI_PASSWORD_MYSQL
-
-# --- CLOUD (contoh: Aiven MySQL, wajib TLS) ---
-#db.url=jdbc:mysql://HOST_CLOUD:PORT/db_topsis_indivara_group?sslMode=REQUIRED&useUnicode=true&characterEncoding=UTF-8&connectTimeout=10000&tcpKeepAlive=true&cachePrepStmts=true&prepStmtCacheSize=250&useLocalSessionState=true
-#db.user=USER_CLOUD
-#db.password=PASSWORD_CLOUD
-```
-
-Aktifkan salah satu blok (LOKAL atau CLOUD) dengan memindahkan tanda `#`.
-File ini ter-bundle ke dalam JAR, jadi setiap kali diubah harus
-`Clean and Build` ulang.
-
-### 3. Library MySQL Connector/J
-
-Driver sudah tersedia di `lib/mysql-connector-j-8.0.33.jar` dan sudah
-terdaftar di project properties. Tidak perlu setup tambahan selama struktur
-folder tidak diubah.
-
-### 4. Jalankan Project
-
-1. Buka NetBeans.
-2. `File` -> `Open Project` -> pilih folder project ini.
-3. Klik kanan project -> `Clean and Build` -> `Run`.
-
-JAR hasil build ada di `dist/SPK-TOPSIS-Indivara-Group.jar` dan bisa dijalankan
-langsung dengan double-click (butuh Java terpasang).
-
-Default login:
+Login demo:
 
 ```text
 Username: admin
 Password: admin123
 ```
 
-## Rumus TOPSIS yang Digunakan
+## Operasional DVD dan reset
 
-1. Membuat matriks keputusan dari nilai alternatif terhadap kriteria.
-2. Normalisasi matriks:
+- Semua pengguna DVD memakai satu database demo Supabase; perubahan yang mereka buat akan tersimpan.
+- Jika data perlu dikembalikan ke kondisi demo, pemilik project menjalankan kembali tiga skrip setup di atas. `database/reset_data_demo.sql` adalah pengingat prosedur tersebut.
+- Supabase Free Plan dapat menjeda project yang tidak aktif. Sebelum demonstrasi, pemilik project harus memastikan project aktif atau melanjutkannya dari dashboard Supabase.
+- Setelah mengisi kredensial nyata, buat ulang JAR dan uji dari folder distribusi dengan koneksi internet aktif.
 
-```text
-r_ij = x_ij / sqrt(sum(x_ij^2))
-```
+## Rumus TOPSIS
 
-3. Matriks normalisasi terbobot:
+1. Normalisasi: `r_ij = x_ij / sqrt(sum(x_ij^2))`
+2. Normalisasi terbobot: `y_ij = w_j * r_ij`
+3. Tentukan solusi ideal positif dan negatif.
+4. Nilai preferensi: `V_i = D_i^- / (D_i^+ + D_i^-)`
+5. Ranking mengikuti nilai preferensi terbesar.
 
-```text
-y_ij = w_j * r_ij
-```
+## Catatan akademik
 
-4. Menentukan solusi ideal positif dan solusi ideal negatif.
-5. Menghitung jarak terhadap solusi ideal positif dan negatif.
-6. Menghitung nilai preferensi:
-
-```text
-V_i = D_i^- / (D_i^+ + D_i^-)
-```
-
-7. Ranking ditentukan dari nilai preferensi terbesar ke terkecil.
-
-## Catatan Pengembangan
-
-- Kriteria dan bobot awal hanya contoh akademik. Validasi kembali dengan HRD atau pembimbing.
-- Total bobot kriteria harus sama dengan 1.
-- Nilai penilaian sebaiknya memakai skala 0 sampai 100 agar mudah dibaca.
-- Tanggal masuk karyawan bersifat opsional. Jika diisi, formatnya harus `yyyy-MM-dd`.
-- Koneksi database memakai satu koneksi bersama (shared connection) agar tetap cepat saat memakai database cloud.
-- Keputusan akhir tetap berada pada pihak manajemen; sistem hanya alat bantu rekomendasi.
+- Bobot dan data awal adalah contoh demonstrasi dan perlu divalidasi oleh HRD/pembimbing.
+- Total bobot kriteria harus 1.
+- Sistem memberi rekomendasi; keputusan akhir tetap berada pada manajemen.

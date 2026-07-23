@@ -11,6 +11,10 @@
 !/README.md
 !/build.xml
 !/manifest.mf
+!/tools/
+/tools/*
+!/tools/refresh_drive_documents.ps1
+!/tools/index_drive_documents.sh
 
 # Machine-specific NetBeans files
 /nbproject/private/

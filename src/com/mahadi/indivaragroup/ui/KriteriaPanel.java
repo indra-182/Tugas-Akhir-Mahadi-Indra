@@ -1,6 +1,7 @@
 package com.mahadi.indivaragroup.ui;
 
 import com.mahadi.indivaragroup.dao.HasilRankingDao;
+import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
 import com.mahadi.indivaragroup.dao.KriteriaDao;
 import com.mahadi.indivaragroup.model.Kriteria;
 import com.mahadi.indivaragroup.util.DialogUtil;
@@ -31,6 +32,7 @@ import java.util.regex.Pattern;
 public class KriteriaPanel extends JPanel {
     private final KriteriaDao kriteriaDao = new KriteriaDao();
     private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
+    private final PerhitunganTopsisService topsisService = new PerhitunganTopsisService();
     private final KriteriaTableModel tableModel = new KriteriaTableModel();
     private final JTable tabel = new JTable(tableModel);
 
@@ -188,7 +190,7 @@ public class KriteriaPanel extends JPanel {
     private void simpan() {
         try {
             kriteriaDao.tambah(bacaForm());
-            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
+            topsisService.batalkanTahunBerjalan(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data kriteria berhasil disimpan.");
             bersihkanForm();
             muatData();
@@ -206,7 +208,7 @@ public class KriteriaPanel extends JPanel {
             Kriteria kriteria = bacaForm();
             kriteria.setId(idTerpilih);
             kriteriaDao.ubah(kriteria);
-            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
+            topsisService.batalkanTahunBerjalan(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data kriteria berhasil diubah.");
             bersihkanForm();
             muatData();
@@ -225,7 +227,7 @@ public class KriteriaPanel extends JPanel {
         }
         try {
             kriteriaDao.hapus(idTerpilih);
-            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
+            topsisService.batalkanTahunBerjalan(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data kriteria berhasil dihapus.");
             bersihkanForm();
             muatData();

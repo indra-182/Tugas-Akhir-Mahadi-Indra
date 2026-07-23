@@ -3,10 +3,12 @@ package com.mahadi.indivaragroup.ui;
 import com.mahadi.indivaragroup.dao.HasilRankingDao;
 import com.mahadi.indivaragroup.dao.KaryawanDao;
 import com.mahadi.indivaragroup.dao.PenilaianDao;
+import com.mahadi.indivaragroup.dao.PerhitunganSnapshotDao;
 import com.mahadi.indivaragroup.model.HasilRanking;
 import com.mahadi.indivaragroup.model.Karyawan;
 import com.mahadi.indivaragroup.util.DialogUtil;
 import com.mahadi.indivaragroup.util.NumberUtil;
+import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Desktop;
@@ -28,6 +30,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.Year;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Date;
 import java.util.Locale;
 import java.util.List;
@@ -62,6 +65,8 @@ public class LaporanPanel extends JPanel {
     private final KaryawanDao karyawanDao = new KaryawanDao();
     private final PenilaianDao penilaianDao = new PenilaianDao();
     private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
+    private final PerhitunganSnapshotDao snapshotDao = new PerhitunganSnapshotDao();
+    private final PerhitunganTopsisService topsisService = new PerhitunganTopsisService();
 
     private final JComboBox<String> jenisLaporanComboBox = new JComboBox<>(new String[]{
         LAPORAN_DATA_RANKING,
@@ -136,8 +141,12 @@ public class LaporanPanel extends JPanel {
     private void muatKaryawanComboBox() {
         try {
             karyawanComboBox.removeAllItems();
-            List<Karyawan> daftarKaryawan = karyawanDao.ambilSemua();
-            daftarKaryawan.forEach(karyawanComboBox::addItem);
+            LinkedHashMap<Integer, Karyawan> daftarKaryawan = new LinkedHashMap<Integer, Karyawan>();
+            for (Karyawan karyawan : karyawanDao.ambilSemua()) daftarKaryawan.put(karyawan.getId(), karyawan);
+            for (Karyawan karyawan : snapshotDao.ambilPesertaTersimpan()) {
+                if (!daftarKaryawan.containsKey(karyawan.getId())) daftarKaryawan.put(karyawan.getId(), karyawan);
+            }
+            daftarKaryawan.values().forEach(karyawanComboBox::addItem);
         } catch (SQLException ex) {
             DialogUtil.showError(this, ex.getMessage());
         }
@@ -206,7 +215,13 @@ public class LaporanPanel extends JPanel {
 
     private void muatLaporanRanking() throws Exception {
         int tahun = tahunTerpilih();
-        List<HasilRanking> daftarRanking = hasilRankingDao.ambilSemua(tahun);
+        List<HasilRanking> daftarRanking;
+        if (tahun == Year.now().getValue()) {
+            daftarRanking = hasilRankingDao.ambilSemua(tahun);
+        } else {
+            topsisService.ambilDetailHistoris(tahun);
+            daftarRanking = snapshotDao.ambilRanking(tahun);
+        }
         if (daftarRanking.isEmpty()) {
             tampilkanPesanInfo(tahun == Year.now().getValue()
                     ? "Proses Perhitungan Dahulu untuk Menampilkan Data"
@@ -249,7 +264,17 @@ public class LaporanPanel extends JPanel {
             return;
         }
 
-        List<HasilRanking> daftarRiwayat = hasilRankingDao.ambilRiwayatByKaryawan(karyawanTerpilih.getId());
+        for (Integer tahun : penilaianDao.ambilDaftarTahunByKaryawan(karyawanTerpilih.getId())) {
+            if (tahun < Year.now().getValue()) {
+                try {
+                    topsisService.ambilDetailHistoris(tahun);
+                } catch (IllegalArgumentException ex) {
+                    // An incomplete legacy period has no valid trend value; other periods remain visible.
+                }
+            }
+        }
+        List<HasilRanking> daftarRiwayat = snapshotDao.ambilRiwayat(karyawanTerpilih.getId());
+        if (daftarRiwayat.isEmpty()) daftarRiwayat = hasilRankingDao.ambilRiwayatByKaryawan(karyawanTerpilih.getId());
         if (daftarRiwayat.isEmpty()) {
             tampilkanPesanInfo("Proses Perhitungan Dahulu untuk Menampilkan Data");
             return;

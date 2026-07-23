@@ -18,7 +18,7 @@ public class Main {
                 new LoginFrame().setVisible(true);
             } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | SQLException | UnsupportedLookAndFeelException ex) {
                 DialogUtil.showError(null,
-                        "Aplikasi gagal dijalankan. Pastikan XAMPP/MySQL aktif, database sudah di-import, dan MySQL Connector/J sudah ditambahkan ke Libraries.\n\nDetail: "
+                        "Aplikasi gagal dijalankan. Pastikan koneksi internet tersedia, project Supabase aktif, konfigurasi PostgreSQL benar, dan driver PostgreSQL tersedia.\n\nDetail: "
                                 + ambilPesanError(ex));
             }
         });

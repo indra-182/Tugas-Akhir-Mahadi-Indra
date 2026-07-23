@@ -25,6 +25,29 @@
         </copy>
     </target>
 
+    <target name="test-compile" depends="compile" description="Compile unit tests.">
+        <mkdir dir="${build.test.classes.dir}"/>
+        <javac srcdir="${test.src.dir}" destdir="${build.test.classes.dir}" source="${javac.source}" target="${javac.target}" encoding="${source.encoding}" includeantruntime="false">
+            <classpath>
+                <pathelement path="${javac.test.classpath}"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="test" depends="test-compile" description="Run JUnit unit tests.">
+        <mkdir dir="${build.test.results.dir}"/>
+        <junit fork="true" haltonfailure="true" failureproperty="tests.failed" printsummary="yes">
+            <classpath>
+                <pathelement path="${run.test.classpath}"/>
+            </classpath>
+            <formatter type="plain" usefile="false"/>
+            <batchtest todir="${build.test.results.dir}">
+                <fileset dir="${test.src.dir}" includes="**/*Test.java"/>
+            </batchtest>
+        </junit>
+        <fail if="tests.failed" message="JUnit test failure."/>
+    </target>
+
     <target name="jar" depends="compile" description="Create application jar.">
         <jar destfile="${dist.jar}" basedir="${build.classes.dir}">
             <manifest>

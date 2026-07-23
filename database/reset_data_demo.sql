@@ -1,0 +1,3 @@
+-- Reset data demo (DESTRUKTIF): jalankan db_topsis_indivara_group.sql,
+-- lalu seed_penilaian_2024.sql dan seed_penilaian_2025.sql secara berurutan.
+-- Hanya pemilik project Supabase yang boleh menjalankan reset ini.

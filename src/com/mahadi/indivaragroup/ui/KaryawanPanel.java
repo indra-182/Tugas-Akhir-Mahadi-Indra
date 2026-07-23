@@ -1,6 +1,7 @@
 package com.mahadi.indivaragroup.ui;
 
 import com.mahadi.indivaragroup.dao.HasilRankingDao;
+import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
 import com.mahadi.indivaragroup.dao.KaryawanDao;
 import com.mahadi.indivaragroup.model.Karyawan;
 import com.mahadi.indivaragroup.util.DialogUtil;
@@ -33,6 +34,7 @@ import java.util.regex.Pattern;
 public class KaryawanPanel extends JPanel {
     private final KaryawanDao karyawanDao = new KaryawanDao();
     private final HasilRankingDao hasilRankingDao = new HasilRankingDao();
+    private final PerhitunganTopsisService topsisService = new PerhitunganTopsisService();
     private final KaryawanTableModel tableModel = new KaryawanTableModel();
     private final JTable tabel = new JTable(tableModel);
 
@@ -190,7 +192,7 @@ public class KaryawanPanel extends JPanel {
     private void simpan() {
         try {
             karyawanDao.tambah(bacaForm());
-            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
+            topsisService.batalkanTahunBerjalan(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data karyawan berhasil disimpan.");
             bersihkanForm();
             muatData();
@@ -208,7 +210,7 @@ public class KaryawanPanel extends JPanel {
             Karyawan karyawan = bacaForm();
             karyawan.setId(idTerpilih);
             karyawanDao.ubah(karyawan);
-            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
+            topsisService.batalkanTahunBerjalan(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data karyawan berhasil diubah.");
             bersihkanForm();
             muatData();
@@ -227,7 +229,7 @@ public class KaryawanPanel extends JPanel {
         }
         try {
             karyawanDao.hapus(idTerpilih);
-            hasilRankingDao.hapusSemua(java.time.Year.now().getValue());
+            topsisService.batalkanTahunBerjalan(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data karyawan berhasil dihapus.");
             bersihkanForm();
             muatData();

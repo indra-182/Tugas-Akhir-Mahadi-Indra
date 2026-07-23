@@ -23,6 +23,13 @@ public class KaryawanDao {
         return ambilDaftarKaryawan(sql, "AKTIF");
     }
 
+    public List<Karyawan> ambilDinilaiPadaTahun(int tahun) throws SQLException {
+        String kolomKaryawan = "k.id, k.kode_karyawan, k.nama, k.divisi, k.jabatan, k.tanggal_masuk, k.status";
+        String sql = "SELECT DISTINCT " + kolomKaryawan + " FROM karyawan k "
+                + "JOIN penilaian p ON p.id_karyawan = k.id WHERE p.tahun = ? ORDER BY k.kode_karyawan";
+        return ambilDaftarKaryawanDenganTahun(sql, tahun);
+    }
+
     public int hitungSemua() throws SQLException {
         String sql = "SELECT COUNT(*) AS jumlah FROM karyawan";
         return hitungData(sql);
@@ -77,6 +84,17 @@ public class KaryawanDao {
             DatabaseConnection.closeQuietly(perintah);
             DatabaseConnection.closeQuietly(koneksi);
         }
+    }
+
+    private List<Karyawan> ambilDaftarKaryawanDenganTahun(String sql, int tahun) throws SQLException {
+        List<Karyawan> daftarKaryawan = new ArrayList<Karyawan>();
+        Connection koneksi = null; PreparedStatement perintah = null; ResultSet hasil = null;
+        try {
+            koneksi = DatabaseConnection.getConnection(); perintah = koneksi.prepareStatement(sql);
+            perintah.setInt(1, tahun);
+            hasil = perintah.executeQuery(); while (hasil.next()) daftarKaryawan.add(petakanKaryawan(hasil));
+        } finally { DatabaseConnection.closeQuietly(hasil); DatabaseConnection.closeQuietly(perintah); DatabaseConnection.closeQuietly(koneksi); }
+        return daftarKaryawan;
     }
 
     private int hitungData(String sql) throws SQLException {

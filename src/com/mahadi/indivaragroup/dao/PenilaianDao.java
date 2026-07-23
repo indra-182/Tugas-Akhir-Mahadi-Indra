@@ -67,7 +67,7 @@ public class PenilaianDao {
 
     public void simpan(int idKaryawan, int idKriteria, int tahun, double nilai) throws SQLException {
         String sql = "INSERT INTO penilaian (id_karyawan, id_kriteria, tahun, nilai) VALUES (?, ?, ?, ?) "
-                + "ON DUPLICATE KEY UPDATE nilai = VALUES(nilai)";
+                + "ON CONFLICT (id_karyawan, id_kriteria, tahun) DO UPDATE SET nilai = EXCLUDED.nilai";
         Connection koneksi = null;
         PreparedStatement perintah = null;
 
@@ -170,5 +170,17 @@ public class PenilaianDao {
             DatabaseConnection.closeQuietly(perintah);
             DatabaseConnection.closeQuietly(koneksi);
         }
+    }
+
+    public List<Integer> ambilDaftarTahunByKaryawan(int idKaryawan) throws SQLException {
+        String sql = "SELECT DISTINCT tahun FROM penilaian WHERE id_karyawan = ? ORDER BY tahun ASC";
+        List<Integer> daftar = new ArrayList<Integer>();
+        Connection koneksi = null; PreparedStatement perintah = null; ResultSet hasil = null;
+        try {
+            koneksi = DatabaseConnection.getConnection(); perintah = koneksi.prepareStatement(sql);
+            perintah.setInt(1, idKaryawan);
+            hasil = perintah.executeQuery(); while (hasil.next()) daftar.add(hasil.getInt("tahun"));
+        } finally { DatabaseConnection.closeQuietly(hasil); DatabaseConnection.closeQuietly(perintah); DatabaseConnection.closeQuietly(koneksi); }
+        return daftar;
     }
 }

@@ -108,20 +108,18 @@ public class PerhitunganTopsisPanel extends JPanel {
             boolean tahunBerjalan = tahun == Year.now().getValue();
             prosesButton.setEnabled(tahunBerjalan);
 
-            List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
-            Map<Integer, Map<Integer, Double>> matriksPenilaian = penilaianDao.ambilSemuaSebagaiMatriks(tahun);
-
             tabelPanel.removeAll();
 
             if (tahunBerjalan) {
+                List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
+                Map<Integer, Map<Integer, Double>> matriksPenilaian = penilaianDao.ambilSemuaSebagaiMatriks(tahun);
                 List<Karyawan> daftarKaryawan = karyawanDao.ambilAktif();
                 tambahBagianTabel("Data Penilaian Awal", buatModelDataAwal(daftarKaryawan, daftarKriteria, matriksPenilaian));
                 karyawanTerbaikLabel.setText("Karyawan terbaik: -");
             } else {
-                List<HasilRanking> daftarHasilRanking = hasilRankingDao.ambilSemua(tahun);
-                List<Karyawan> daftarKaryawanTerhitung = karyawanUntukHasilRanking(daftarHasilRanking);
-                tambahBagianTabel("Data Penilaian Awal", buatModelDataAwal(daftarKaryawanTerhitung, daftarKriteria, matriksPenilaian));
-                tambahBagianTabel("Hasil Ranking TOPSIS", buatModelHasilRanking(daftarHasilRanking));
+                PerhitunganDetail detail = topsisService.ambilDetailHistoris(tahun);
+                tampilkanDetailPerhitungan(detail);
+                List<HasilRanking> daftarHasilRanking = detail.getDaftarHasilRanking();
                 if (daftarHasilRanking.isEmpty()) {
                     karyawanTerbaikLabel.setText("Karyawan terbaik: -");
                 } else {
