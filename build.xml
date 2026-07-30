@@ -2,4 +2,21 @@
 <project name="SPK-TOPSIS-Indivara-Group" default="default" basedir=".">
     <description>Builds, tests, and runs the project SPK-TOPSIS-Indivara-Group.</description>
     <import file="nbproject/build-impl.xml"/>
+
+    <property name="academic.test.classes" value="
+        com.mahadi.indivaragroup.service.ValidasiEvaluasiTahunanTest
+        com.mahadi.indivaragroup.service.PeringkatTopsisTest
+        com.mahadi.indivaragroup.service.LaporanPerhitunganTopsisTest
+        com.mahadi.indivaragroup.service.PerhitunganTopsisServiceIntegrationTest"/>
+
+    <target name="verify-academic" depends="test-compile" description="Run reproducible academic verification tests.">
+        <java classname="com.mahadi.indivaragroup.TestRunner" fork="true" failonerror="true">
+            <classpath>
+                <pathelement path="${run.test.classpath}"/>
+            </classpath>
+            <arg line="${academic.test.classes}"/>
+        </java>
+    </target>
+
+    <target name="test" depends="verify-academic" description="Run the academic verification suite."/>
 </project>

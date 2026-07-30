@@ -21,6 +21,14 @@ public class LaporanPerhitunganTopsisTest {
                 "Hasil Ranking TOPSIS", "Rekomendasi"), laporan.getJudulBagian());
         Assert.assertEquals("1", laporan.getBagian("Hasil Ranking TOPSIS").getBaris().get(0)[0]);
         Assert.assertEquals("1", laporan.getBagian("Hasil Ranking TOPSIS").getBaris().get(1)[0]);
+        Assert.assertArrayEquals(new String[]{"Kode", "Kriteria", "Tipe", "Bobot"},
+                laporan.getBagian("Kriteria dan Bobot").getKolom());
+        Assert.assertEquals("0.25", laporan.getBagian("Kriteria dan Bobot").getBaris().get(0)[3]);
+        Assert.assertEquals("80", laporan.getBagian("Matriks Keputusan").getBaris().get(0)[2]);
+        Assert.assertEquals("0.7071", laporan.getBagian("Matriks Normalisasi").getBaris().get(0)[2]);
+        Assert.assertEquals("0.1768", laporan.getBagian("Matriks Normalisasi Terbobot").getBaris().get(0)[2]);
+        Assert.assertEquals("0.1768", laporan.getBagian("Solusi Ideal").getBaris().get(0)[3]);
+        Assert.assertEquals("0.75", laporan.getBagian("Jarak dan Nilai Preferensi").getBaris().get(0)[4]);
         Assert.assertEquals("Rekomendasi karyawan terbaik bersama: Andi, Bima", laporan.getRekomendasi());
     }
 

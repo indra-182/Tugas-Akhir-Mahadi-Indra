@@ -50,6 +50,25 @@ Username: admin
 Password: admin123
 ```
 
+## Verifikasi akademik
+
+Prasyarat: Java JDK 8 atau lebih baru, Apache Ant 1.9 atau lebih baru, serta file
+`lib/junit-4.13.2.jar` dan `lib/postgresql-42.7.13.jar` yang sudah disertakan pada project.
+
+Jalankan satu perintah berikut dari folder root project:
+
+```text
+ant test
+```
+
+Perintah tersebut mengompilasi aplikasi dan menjalankan verifikasi aturan enam kriteria,
+total bobot 1,00, Absensi sebagai kriteria cost, competition ranking, rekonstruksi data
+snapshot historis, dan isi laporan evaluasi. Perintah akan berhenti dengan status non-zero
+apabila ada tes yang gagal.
+
+Runner mendukung anotasi JUnit 4 `@Test` dan `@Test(expected = ...)`; tambahkan kelas tes baru
+ke properti `academic.test.classes` di `build.xml` agar ikut dijalankan oleh `ant test`.
+
 ## Operasional DVD dan reset
 
 - Semua pengguna DVD memakai satu database demo Supabase; perubahan yang mereka buat akan tersimpan.

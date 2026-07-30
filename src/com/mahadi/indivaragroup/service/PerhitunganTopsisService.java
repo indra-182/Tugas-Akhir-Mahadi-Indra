@@ -55,6 +55,12 @@ public class PerhitunganTopsisService {
         List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
         Map<Integer, Map<Integer, Double>> matriksPenilaian = penilaianDao.ambilSemuaSebagaiMatriks(tahun);
 
+        return hitungDetailDariData(daftarKaryawan, daftarKriteria, matriksPenilaian);
+    }
+
+    /** Menghitung evaluasi dari data tahunan, termasuk data snapshot historis. */
+    public PerhitunganDetail hitungDetailDariData(List<Karyawan> daftarKaryawan, List<Kriteria> daftarKriteria,
+            Map<Integer, Map<Integer, Double>> matriksPenilaian) {
         return hitungDetail(daftarKaryawan, daftarKriteria, matriksPenilaian);
     }
 
