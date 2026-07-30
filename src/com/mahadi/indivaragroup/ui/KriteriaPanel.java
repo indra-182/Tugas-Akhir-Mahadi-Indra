@@ -2,6 +2,7 @@ package com.mahadi.indivaragroup.ui;
 
 import com.mahadi.indivaragroup.dao.HasilRankingDao;
 import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
+import com.mahadi.indivaragroup.service.ValidasiEvaluasiTahunan;
 import com.mahadi.indivaragroup.dao.KriteriaDao;
 import com.mahadi.indivaragroup.model.Kriteria;
 import com.mahadi.indivaragroup.util.DialogUtil;
@@ -189,12 +190,14 @@ public class KriteriaPanel extends JPanel {
 
     private void simpan() {
         try {
-            kriteriaDao.tambah(bacaForm());
+            Kriteria kriteria = bacaForm();
+            validasiKriteriaSetelahSimpan(kriteria, false);
+            kriteriaDao.tambah(kriteria);
             topsisService.batalkanTahunBerjalan(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data kriteria berhasil disimpan.");
             bersihkanForm();
             muatData();
-        } catch (SQLException ex) {
+        } catch (SQLException | IllegalArgumentException ex) {
             DialogUtil.showError(this, ex.getMessage());
         }
     }
@@ -207,12 +210,13 @@ public class KriteriaPanel extends JPanel {
         try {
             Kriteria kriteria = bacaForm();
             kriteria.setId(idTerpilih);
+            validasiKriteriaSetelahSimpan(kriteria, true);
             kriteriaDao.ubah(kriteria);
             topsisService.batalkanTahunBerjalan(java.time.Year.now().getValue());
             DialogUtil.showInfo(this, "Data kriteria berhasil diubah.");
             bersihkanForm();
             muatData();
-        } catch (SQLException ex) {
+        } catch (SQLException | IllegalArgumentException ex) {
             DialogUtil.showError(this, ex.getMessage());
         }
     }
@@ -222,18 +226,7 @@ public class KriteriaPanel extends JPanel {
             DialogUtil.showWarning(this, "Pilih data yang ingin dihapus.");
             return;
         }
-        if (!DialogUtil.confirm(this, "Hapus data kriteria terpilih?")) {
-            return;
-        }
-        try {
-            kriteriaDao.hapus(idTerpilih);
-            topsisService.batalkanTahunBerjalan(java.time.Year.now().getValue());
-            DialogUtil.showInfo(this, "Data kriteria berhasil dihapus.");
-            bersihkanForm();
-            muatData();
-        } catch (SQLException ex) {
-            DialogUtil.showError(this, ex.getMessage());
-        }
+        DialogUtil.showWarning(this, "Enam kriteria evaluasi tahunan wajib dipertahankan dan tidak dapat dihapus.");
     }
 
     private Kriteria bacaForm() {
@@ -251,6 +244,22 @@ public class KriteriaPanel extends JPanel {
         kriteria.setTipe(tipeComboBox.getSelectedItem().toString());
         kriteria.setKeterangan("");
         return kriteria;
+    }
+
+    private void validasiKriteriaSetelahSimpan(Kriteria kriteriaBaru, boolean ubah) throws SQLException {
+        List<Kriteria> daftarKriteria = kriteriaDao.ambilSemua();
+        if (ubah) {
+            for (int i = 0; i < daftarKriteria.size(); i++) {
+                if (daftarKriteria.get(i).getId() == kriteriaBaru.getId()) {
+                    daftarKriteria.set(i, kriteriaBaru);
+                    ValidasiEvaluasiTahunan.validasiKriteria(daftarKriteria);
+                    return;
+                }
+            }
+            throw new IllegalArgumentException("Kriteria yang akan diubah tidak ditemukan.");
+        }
+        daftarKriteria.add(kriteriaBaru);
+        ValidasiEvaluasiTahunan.validasiKriteria(daftarKriteria);
     }
 
     private void bersihkanForm() {

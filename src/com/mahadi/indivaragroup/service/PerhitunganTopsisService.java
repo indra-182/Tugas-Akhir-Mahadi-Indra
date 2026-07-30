@@ -215,14 +215,7 @@ public class PerhitunganTopsisService {
             throw new IllegalArgumentException("Data kriteria belum tersedia.");
         }
 
-        for (Kriteria kriteria : daftarKriteria) {
-            if (kriteria.getBobot() <= 0) {
-                throw new IllegalArgumentException("Bobot kriteria " + kriteria.getKode() + " harus lebih dari 0.");
-            }
-            if (!Kriteria.BENEFIT.equals(kriteria.getTipe()) && !Kriteria.COST.equals(kriteria.getTipe())) {
-                throw new IllegalArgumentException("Tipe kriteria " + kriteria.getKode() + " harus BENEFIT atau COST.");
-            }
-        }
+        ValidasiEvaluasiTahunan.validasiKriteria(daftarKriteria);
 
         for (Karyawan karyawan : daftarKaryawan) {
             if (!matriksPenilaian.containsKey(karyawan.getId())) {
@@ -234,6 +227,7 @@ public class PerhitunganTopsisService {
                     throw new IllegalArgumentException("Nilai " + kriteria.getKode()
                             + " untuk " + karyawan.getNama() + " belum diisi.");
                 }
+                ValidasiEvaluasiTahunan.validasiNilai(kriteria, nilaiKaryawan.get(kriteria.getId()));
             }
         }
     }

@@ -2,6 +2,7 @@ package com.mahadi.indivaragroup.ui;
 
 import com.mahadi.indivaragroup.dao.HasilRankingDao;
 import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
+import com.mahadi.indivaragroup.service.ValidasiEvaluasiTahunan;
 import com.mahadi.indivaragroup.dao.KaryawanDao;
 import com.mahadi.indivaragroup.dao.KriteriaDao;
 import com.mahadi.indivaragroup.dao.PenilaianDao;
@@ -302,9 +303,7 @@ public class PenilaianPanel extends JPanel {
             if (kolomIndex == 5) {
                 try {
                     double nilai = NumberUtil.parseNonNegativeDouble(String.valueOf(nilaiBaru), "Nilai");
-                    if (nilai > 100) {
-                        throw new IllegalArgumentException("Nilai tidak boleh lebih dari 100.");
-                    }
+                    ValidasiEvaluasiTahunan.validasiNilai(daftarKriteria.get(baris), nilai);
                     daftarNilai.set(baris, nilai);
                 } catch (IllegalArgumentException ex) {
                     DialogUtil.showError(PenilaianPanel.this, ex.getMessage());
