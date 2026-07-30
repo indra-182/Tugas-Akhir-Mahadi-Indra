@@ -123,9 +123,7 @@ public class PerhitunganTopsisPanel extends JPanel {
                 if (daftarHasilRanking.isEmpty()) {
                     karyawanTerbaikLabel.setText("Karyawan terbaik: -");
                 } else {
-                    HasilRanking terbaik = daftarHasilRanking.get(0);
-                    karyawanTerbaikLabel.setText("Karyawan terbaik: " + terbaik.getNamaKaryawan()
-                            + " dengan nilai TOPSIS " + NumberUtil.format(terbaik.getNilaiTopsis()));
+                    karyawanTerbaikLabel.setText(formatKaryawanTerbaik(daftarHasilRanking));
                 }
             }
 
@@ -174,9 +172,7 @@ public class PerhitunganTopsisPanel extends JPanel {
             tampilkanDetailPerhitungan(detail);
             List<HasilRanking> daftarHasilRanking = detail.getDaftarHasilRanking();
             if (!daftarHasilRanking.isEmpty()) {
-                HasilRanking terbaik = daftarHasilRanking.get(0);
-                karyawanTerbaikLabel.setText("Karyawan terbaik: " + terbaik.getNamaKaryawan()
-                        + " dengan nilai TOPSIS " + NumberUtil.format(terbaik.getNilaiTopsis()));
+                karyawanTerbaikLabel.setText(formatKaryawanTerbaik(daftarHasilRanking));
             }
             DialogUtil.showInfo(this, "Perhitungan TOPSIS berhasil dilakukan.");
         } catch (SQLException ex) {
@@ -197,6 +193,25 @@ public class PerhitunganTopsisPanel extends JPanel {
         tambahBagianTabel("7. Hasil Ranking TOPSIS", buatModelHasilRanking(detail.getDaftarHasilRanking()));
         tabelPanel.revalidate();
         tabelPanel.repaint();
+    }
+
+    private String formatKaryawanTerbaik(List<HasilRanking> daftarHasilRanking) {
+        HasilRanking terbaik = daftarHasilRanking.get(0);
+        StringBuilder namaKaryawan = new StringBuilder();
+        for (HasilRanking hasilRanking : daftarHasilRanking) {
+            if (hasilRanking.getPeringkat() != terbaik.getPeringkat()) {
+                break;
+            }
+            if (namaKaryawan.length() > 0) {
+                namaKaryawan.append(", ");
+            }
+            namaKaryawan.append(hasilRanking.getNamaKaryawan());
+        }
+
+        String label = namaKaryawan.indexOf(", ") >= 0
+                ? "Karyawan terbaik bersama: " : "Karyawan terbaik: ";
+        return label + namaKaryawan + " dengan nilai TOPSIS "
+                + NumberUtil.format(terbaik.getNilaiTopsis());
     }
 
     private void tambahBagianTabel(String judul, DefaultTableModel model) {

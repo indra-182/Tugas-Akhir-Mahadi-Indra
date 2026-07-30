@@ -11,8 +11,6 @@ import com.mahadi.indivaragroup.model.Kriteria;
 import com.mahadi.indivaragroup.model.PerhitunganSnapshot;
 import java.time.Year;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -75,7 +73,7 @@ public class PerhitunganTopsisService {
         double[] jarakPositif = hitungJarak(matriksTerbobot, solusiIdealPositif);
         double[] jarakNegatif = hitungJarak(matriksTerbobot, solusiIdealNegatif);
         double[] nilaiPreferensi = hitungNilaiPreferensi(jarakPositif, jarakNegatif);
-        List<HasilRanking> daftarHasilRanking = buatHasilRanking(daftarKaryawan, nilaiPreferensi);
+        List<HasilRanking> daftarHasilRanking = PeringkatTopsis.buat(daftarKaryawan, nilaiPreferensi);
 
         return new PerhitunganDetail(daftarKaryawan, daftarKriteria, matriksKeputusan,
                 pembagiNormalisasi, matriksNormalisasi, bobotKriteria, matriksTerbobot,
@@ -177,33 +175,6 @@ public class PerhitunganTopsisService {
             preferensi[i] = pembagi == 0 ? 0 : jarakNegatif[i] / pembagi;
         }
         return preferensi;
-    }
-
-    private List<HasilRanking> buatHasilRanking(List<Karyawan> daftarKaryawan, double[] nilaiPreferensi) {
-        List<HasilRanking> daftarHasilRanking = new ArrayList<HasilRanking>();
-        for (int i = 0; i < daftarKaryawan.size(); i++) {
-            Karyawan karyawan = daftarKaryawan.get(i);
-            HasilRanking hasilRanking = new HasilRanking();
-            hasilRanking.setIdKaryawan(karyawan.getId());
-            hasilRanking.setKodeKaryawan(karyawan.getKodeKaryawan());
-            hasilRanking.setNamaKaryawan(karyawan.getNama());
-            hasilRanking.setDivisi(karyawan.getDivisi());
-            hasilRanking.setNilaiTopsis(nilaiPreferensi[i]);
-            daftarHasilRanking.add(hasilRanking);
-        }
-
-        Collections.sort(daftarHasilRanking, (HasilRanking pertama, HasilRanking kedua) -> {
-            int banding = Double.compare(kedua.getNilaiTopsis(), pertama.getNilaiTopsis());
-            if (banding != 0) {
-                return banding;
-            }
-            return pertama.getNamaKaryawan().compareToIgnoreCase(kedua.getNamaKaryawan());
-        });
-
-        for (int i = 0; i < daftarHasilRanking.size(); i++) {
-            daftarHasilRanking.get(i).setPeringkat(i + 1);
-        }
-        return daftarHasilRanking;
     }
 
     private void validasiInput(List<Karyawan> daftarKaryawan, List<Kriteria> daftarKriteria,

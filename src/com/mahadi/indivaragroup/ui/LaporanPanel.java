@@ -8,6 +8,7 @@ import com.mahadi.indivaragroup.model.HasilRanking;
 import com.mahadi.indivaragroup.model.Karyawan;
 import com.mahadi.indivaragroup.util.DialogUtil;
 import com.mahadi.indivaragroup.util.NumberUtil;
+import com.mahadi.indivaragroup.service.PeringkatTopsis;
 import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -429,6 +430,10 @@ public class LaporanPanel extends JPanel {
             gambarTeksTengah(grafik, TELEPON, tengah, y, fontNormal);
             y += 34;
             gambarTeksTengah(grafik, jenisLaporanComboBox.getSelectedItem().toString().toUpperCase(), tengah, y, fontSubJudul);
+            if (LAPORAN_DATA_RANKING.equals(jenisLaporanComboBox.getSelectedItem().toString())) {
+                y += 14;
+                gambarTeksTengah(grafik, PeringkatTopsis.KONVENSI_PERINGKAT, tengah, y, fontNormal);
+            }
             return y + 20;
         }
 
