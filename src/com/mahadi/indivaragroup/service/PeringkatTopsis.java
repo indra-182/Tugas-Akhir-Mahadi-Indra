@@ -53,4 +53,18 @@ public final class PeringkatTopsis {
         }
         return hasil;
     }
+
+    public static List<HasilRanking> ambilPeringkatTerbaik(List<HasilRanking> daftarRanking) {
+        if (daftarRanking.isEmpty()) {
+            return Collections.emptyList();
+        }
+        int peringkatTerbaik = daftarRanking.get(0).getPeringkat();
+        List<HasilRanking> hasil = new ArrayList<HasilRanking>();
+        for (HasilRanking ranking : daftarRanking) {
+            if (ranking.getPeringkat() == peringkatTerbaik) {
+                hasil.add(ranking);
+            }
+        }
+        return hasil;
+    }
 }

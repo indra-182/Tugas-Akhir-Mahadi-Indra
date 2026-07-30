@@ -9,7 +9,9 @@ import com.mahadi.indivaragroup.model.Karyawan;
 import com.mahadi.indivaragroup.util.DialogUtil;
 import com.mahadi.indivaragroup.util.NumberUtil;
 import com.mahadi.indivaragroup.service.PeringkatTopsis;
+import com.mahadi.indivaragroup.service.LaporanPerhitunganTopsis;
 import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
+import com.mahadi.indivaragroup.service.PerhitunganTopsisService.PerhitunganDetail;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Desktop;
@@ -80,6 +82,7 @@ public class LaporanPanel extends JPanel {
     private final DefaultTableModel tableModel = new DefaultTableModel();
     private final JTable tabel = new JTable(tableModel);
     private final JPanel judulPanel = new JPanel(new BorderLayout());
+    private LaporanPerhitunganTopsis laporanPerhitunganTopsis;
 
     public LaporanPanel() {
         setLayout(new BorderLayout(10, 22));
@@ -174,6 +177,7 @@ public class LaporanPanel extends JPanel {
     private void muatLaporan() {
         try {
             String jenis = jenisLaporanComboBox.getSelectedItem().toString();
+            laporanPerhitunganTopsis = null;
             judulPanel.removeAll();
             judulPanel.add(TampilanUtil.buatJudul(jenis.toUpperCase()), BorderLayout.CENTER);
             terapkanTampilanSelector(jenis);
@@ -217,10 +221,12 @@ public class LaporanPanel extends JPanel {
     private void muatLaporanRanking() throws Exception {
         int tahun = tahunTerpilih();
         List<HasilRanking> daftarRanking;
+        PerhitunganDetail detail;
         if (tahun == Year.now().getValue()) {
             daftarRanking = hasilRankingDao.ambilSemua(tahun);
+            detail = daftarRanking.isEmpty() ? null : topsisService.hitungDetail(tahun);
         } else {
-            topsisService.ambilDetailHistoris(tahun);
+            detail = topsisService.ambilDetailHistoris(tahun);
             daftarRanking = snapshotDao.ambilRanking(tahun);
         }
         if (daftarRanking.isEmpty()) {
@@ -229,6 +235,7 @@ public class LaporanPanel extends JPanel {
                     : "Belum ada data hasil perhitungan untuk tahun ini.");
             return;
         }
+        laporanPerhitunganTopsis = LaporanPerhitunganTopsis.buat(tahun, detail);
 
         tableModel.setDataVector(new Object[][]{}, new Object[]{
             "Peringkat", "Kode Karyawan", "Nama Karyawan", "Nilai TOPSIS"
@@ -377,12 +384,16 @@ public class LaporanPanel extends JPanel {
 
         @Override
         public int print(Graphics graphics, PageFormat pageFormat, int pageIndex) throws PrinterException {
+            if (laporanPerhitunganTopsis != null) {
+                return cetakLaporanPerhitungan(graphics, pageFormat, pageIndex);
+            }
             Graphics2D grafik = (Graphics2D) graphics;
             int xAwal = (int) pageFormat.getImageableX() + MARGIN_KONTEN;
             int yAwal = (int) pageFormat.getImageableY() + MARGIN_KONTEN;
             int lebarKonten = (int) pageFormat.getImageableWidth() - (MARGIN_KONTEN * 2);
             int tinggiKonten = (int) pageFormat.getImageableHeight() - (MARGIN_KONTEN * 2);
-            int yTabel = gambarKopLaporan(grafik, xAwal, yAwal, lebarKonten);
+            int yTabel = gambarKopLaporan(grafik, xAwal, yAwal, lebarKonten,
+                    jenisLaporanComboBox.getSelectedItem().toString().toUpperCase());
             int tinggiAreaTabel = tinggiKonten - (yTabel - yAwal) - 150;
             int jumlahBarisPerHalaman = Math.max(1, (tinggiAreaTabel - TINGGI_HEADER_TABEL) / TINGGI_BARIS);
             int barisMulai = pageIndex * jumlahBarisPerHalaman;
@@ -400,6 +411,44 @@ public class LaporanPanel extends JPanel {
             return PAGE_EXISTS;
         }
 
+        private int cetakLaporanPerhitungan(Graphics graphics, PageFormat pageFormat, int pageIndex) {
+            Graphics2D grafik = (Graphics2D) graphics;
+            int xAwal = (int) pageFormat.getImageableX() + MARGIN_KONTEN;
+            int yAwal = (int) pageFormat.getImageableY() + MARGIN_KONTEN;
+            int lebarKonten = (int) pageFormat.getImageableWidth() - (MARGIN_KONTEN * 2);
+            int tinggiKonten = (int) pageFormat.getImageableHeight() - (MARGIN_KONTEN * 2);
+            String judul = "LAPORAN EVALUASI TOPSIS TAHUN " + laporanPerhitunganTopsis.getTahun();
+            int yBagian = gambarKopLaporan(grafik, xAwal, yAwal, lebarKonten, judul);
+            int jumlahBarisPerHalaman = Math.max(1,
+                    (tinggiKonten - (yBagian - yAwal) - 180 - TINGGI_HEADER_TABEL) / TINGGI_BARIS);
+
+            int sisaHalaman = pageIndex;
+            for (LaporanPerhitunganTopsis.Bagian bagian : laporanPerhitunganTopsis.getDaftarBagian()) {
+                List<String[]> baris = bagian.getBaris();
+                int jumlahHalamanBagian = Math.max(1,
+                        (baris.size() + jumlahBarisPerHalaman - 1) / jumlahBarisPerHalaman);
+                if (sisaHalaman >= jumlahHalamanBagian) {
+                    sisaHalaman -= jumlahHalamanBagian;
+                    continue;
+                }
+
+                int barisMulai = sisaHalaman * jumlahBarisPerHalaman;
+                int barisAkhir = Math.min(baris.size(), barisMulai + jumlahBarisPerHalaman);
+                grafik.setFont(fontSubJudul);
+                grafik.setColor(Color.BLACK);
+                grafik.drawString(bagian.getJudul(), xAwal, yBagian + 16);
+                gambarTabel(grafik, xAwal, yBagian + 24, lebarKonten, bagian.getKolom(),
+                        baris, barisMulai, barisAkhir);
+                if (bagian == laporanPerhitunganTopsis.getDaftarBagian().get(
+                        laporanPerhitunganTopsis.getDaftarBagian().size() - 1)
+                        && barisAkhir >= baris.size()) {
+                    gambarTandaTangan(grafik, xAwal, yAwal + tinggiKonten - 130, lebarKonten);
+                }
+                return PAGE_EXISTS;
+            }
+            return NO_SUCH_PAGE;
+        }
+
         private Image muatLogo() {
             try {
                 File fileLogo = new File(LOKASI_LOGO);
@@ -409,7 +458,7 @@ public class LaporanPanel extends JPanel {
             }
         }
 
-        private int gambarKopLaporan(Graphics2D grafik, int xAwal, int yAwal, int lebarKonten) {
+        private int gambarKopLaporan(Graphics2D grafik, int xAwal, int yAwal, int lebarKonten, String judulLaporan) {
             grafik.setColor(Color.BLACK);
             grafik.drawRect(xAwal - 10, yAwal - 10, lebarKonten + 20, 760);
 
@@ -429,8 +478,9 @@ public class LaporanPanel extends JPanel {
             y += 13;
             gambarTeksTengah(grafik, TELEPON, tengah, y, fontNormal);
             y += 34;
-            gambarTeksTengah(grafik, jenisLaporanComboBox.getSelectedItem().toString().toUpperCase(), tengah, y, fontSubJudul);
-            if (LAPORAN_DATA_RANKING.equals(jenisLaporanComboBox.getSelectedItem().toString())) {
+            gambarTeksTengah(grafik, judulLaporan, tengah, y, fontSubJudul);
+            if (laporanPerhitunganTopsis != null
+                    || LAPORAN_DATA_RANKING.equals(jenisLaporanComboBox.getSelectedItem().toString())) {
                 y += 14;
                 gambarTeksTengah(grafik, PeringkatTopsis.KONVENSI_PERINGKAT, tengah, y, fontNormal);
             }
@@ -438,7 +488,24 @@ public class LaporanPanel extends JPanel {
         }
 
         private void gambarTabel(Graphics2D grafik, int xAwal, int yAwal, int lebarKonten, int barisMulai, int barisAkhir) {
-            int jumlahKolom = tableModel.getColumnCount();
+            List<String[]> baris = new java.util.ArrayList<String[]>();
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                String[] nilai = new String[tableModel.getColumnCount()];
+                for (int j = 0; j < nilai.length; j++) {
+                    nilai[j] = String.valueOf(tableModel.getValueAt(i, j));
+                }
+                baris.add(nilai);
+            }
+            String[] kolom = new String[tableModel.getColumnCount()];
+            for (int i = 0; i < kolom.length; i++) {
+                kolom[i] = tableModel.getColumnName(i);
+            }
+            gambarTabel(grafik, xAwal, yAwal, lebarKonten, kolom, baris, barisMulai, barisAkhir);
+        }
+
+        private void gambarTabel(Graphics2D grafik, int xAwal, int yAwal, int lebarKonten,
+                String[] kolom, List<String[]> baris, int barisMulai, int barisAkhir) {
+            int jumlahKolom = kolom.length;
             int lebarKolom = Math.max(35, lebarKonten / jumlahKolom);
             int y = yAwal;
 
@@ -447,20 +514,19 @@ public class LaporanPanel extends JPanel {
             grafik.fillRect(xAwal, y, lebarKolom * jumlahKolom, TINGGI_HEADER_TABEL);
             grafik.setColor(Color.BLACK);
 
-            for (int kolom = 0; kolom < jumlahKolom; kolom++) {
-                int x = xAwal + (kolom * lebarKolom);
+            for (int indeksKolom = 0; indeksKolom < jumlahKolom; indeksKolom++) {
+                int x = xAwal + (indeksKolom * lebarKolom);
                 grafik.drawRect(x, y, lebarKolom, TINGGI_HEADER_TABEL);
-                gambarTeksPotong(grafik, tableModel.getColumnName(kolom), x + 3, y + 14, lebarKolom - 6);
+                gambarTeksPotong(grafik, kolom[indeksKolom], x + 3, y + 14, lebarKolom - 6);
             }
 
             grafik.setFont(fontTabel);
             y += TINGGI_HEADER_TABEL;
-            for (int baris = barisMulai; baris < barisAkhir; baris++) {
-                for (int kolom = 0; kolom < jumlahKolom; kolom++) {
-                    int x = xAwal + (kolom * lebarKolom);
+            for (int indeksBaris = barisMulai; indeksBaris < barisAkhir; indeksBaris++) {
+                for (int indeksKolom = 0; indeksKolom < jumlahKolom; indeksKolom++) {
+                    int x = xAwal + (indeksKolom * lebarKolom);
                     grafik.drawRect(x, y, lebarKolom, TINGGI_BARIS);
-                    Object nilai = tableModel.getValueAt(baris, kolom);
-                    gambarTeksPotong(grafik, String.valueOf(nilai), x + 3, y + 13, lebarKolom - 6);
+                    gambarTeksPotong(grafik, baris.get(indeksBaris)[indeksKolom], x + 3, y + 13, lebarKolom - 6);
                 }
                 y += TINGGI_BARIS;
             }

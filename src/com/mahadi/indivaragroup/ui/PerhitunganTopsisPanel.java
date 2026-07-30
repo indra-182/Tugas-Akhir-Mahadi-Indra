@@ -9,6 +9,7 @@ import com.mahadi.indivaragroup.model.Karyawan;
 import com.mahadi.indivaragroup.model.Kriteria;
 import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
 import com.mahadi.indivaragroup.service.PerhitunganTopsisService.PerhitunganDetail;
+import com.mahadi.indivaragroup.service.PeringkatTopsis;
 import com.mahadi.indivaragroup.util.DialogUtil;
 import com.mahadi.indivaragroup.util.NumberUtil;
 import java.awt.BorderLayout;
@@ -198,10 +199,7 @@ public class PerhitunganTopsisPanel extends JPanel {
     private String formatKaryawanTerbaik(List<HasilRanking> daftarHasilRanking) {
         HasilRanking terbaik = daftarHasilRanking.get(0);
         StringBuilder namaKaryawan = new StringBuilder();
-        for (HasilRanking hasilRanking : daftarHasilRanking) {
-            if (hasilRanking.getPeringkat() != terbaik.getPeringkat()) {
-                break;
-            }
+        for (HasilRanking hasilRanking : PeringkatTopsis.ambilPeringkatTerbaik(daftarHasilRanking)) {
             if (namaKaryawan.length() > 0) {
                 namaKaryawan.append(", ");
             }

@@ -218,7 +218,7 @@ public class PerhitunganTopsisService {
         private final double[] nilaiPreferensi;
         private final List<HasilRanking> daftarHasilRanking;
 
-        private PerhitunganDetail(List<Karyawan> daftarKaryawan, List<Kriteria> daftarKriteria,
+        PerhitunganDetail(List<Karyawan> daftarKaryawan, List<Kriteria> daftarKriteria,
                 double[][] matriksKeputusan, double[] pembagiNormalisasi,
                 double[][] matriksNormalisasi, double[] bobotKriteria,
                 double[][] matriksTerbobot, double[] solusiIdealPositif,
