@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Rules for the agreed annual employee-evaluation configuration. */
 public final class ValidasiEvaluasiTahunan {
     private static final int JUMLAH_KRITERIA = 6;
     private static final Map<String, String> TIPE_KRITERIA_BAKU = tipeKriteriaBaku();

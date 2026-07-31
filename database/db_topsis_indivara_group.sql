@@ -66,7 +66,7 @@ CREATE TABLE hasil_ranking (
   CONSTRAINT uq_karyawan_tahun UNIQUE (id_karyawan, tahun)
 );
 
--- A completed period is independent of live employee and criteria master data.
+-- Periode yang sudah selesai tidak bergantung pada data master karyawan dan kriteria yang sedang aktif.
 CREATE TABLE perhitungan_topsis_snapshot (
   tahun INTEGER PRIMARY KEY,
   dihitung_pada TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

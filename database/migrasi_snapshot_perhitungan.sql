@@ -1,5 +1,5 @@
--- PostgreSQL migration for databases created before immutable calculation snapshots.
--- Safe to run more than once. Existing years are converted on first access by the application.
+-- Migrasi PostgreSQL untuk database yang dibuat sebelum ada snapshot perhitungan yang tidak bisa diubah.
+-- Aman dijalankan lebih dari sekali. Tahun yang sudah ada dikonversi saat pertama kali diakses aplikasi.
 CREATE TABLE IF NOT EXISTS perhitungan_topsis_snapshot (
   tahun INTEGER PRIMARY KEY,
   dihitung_pada TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS perhitungan_snapshot_penilaian (
   FOREIGN KEY (tahun, id_kriteria_asal) REFERENCES perhitungan_snapshot_kriteria(tahun, id_kriteria_asal) ON DELETE CASCADE
 );
 
--- The application connects as app_topsis; new tables need explicit RLS policies.
+-- Aplikasi terhubung sebagai app_topsis; tabel baru membutuhkan kebijakan RLS eksplisit.
 GRANT SELECT, INSERT, UPDATE, DELETE ON perhitungan_topsis_snapshot,
   perhitungan_snapshot_kriteria, perhitungan_snapshot_peserta,
   perhitungan_snapshot_penilaian TO app_topsis;

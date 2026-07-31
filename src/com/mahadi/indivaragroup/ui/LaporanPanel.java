@@ -277,7 +277,7 @@ public class LaporanPanel extends JPanel {
                 try {
                     topsisService.ambilDetailHistoris(tahun);
                 } catch (IllegalArgumentException ex) {
-                    // An incomplete legacy period has no valid trend value; other periods remain visible.
+                    // Periode legacy yang tidak lengkap tidak punya nilai tren yang valid; periode lain tetap ditampilkan.
                 }
             }
         }
