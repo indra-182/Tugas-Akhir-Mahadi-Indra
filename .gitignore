@@ -5,6 +5,8 @@
 !/lib/
 !/nbproject/
 !/src/
+!/test/
+/test/com/mahadi/indivaragroup/service/PerhitunganTopsisServiceTest.java
 !/README.md
 !/build.xml
 !/manifest.mf

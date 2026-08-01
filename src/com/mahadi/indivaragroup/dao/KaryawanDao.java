@@ -3,6 +3,7 @@ package com.mahadi.indivaragroup.dao;
 import com.mahadi.indivaragroup.model.Karyawan;
 import com.mahadi.indivaragroup.util.DatabaseConnection;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -123,7 +124,7 @@ public class KaryawanDao {
             perintah.setString(2, karyawan.getNama());
             perintah.setString(3, karyawan.getDivisi());
             perintah.setString(4, karyawan.getJabatan());
-            perintah.setString(5, kosongJadiNull(karyawan.getTanggalMasuk()));
+            isiTanggalMasuk(perintah, karyawan.getTanggalMasuk());
             perintah.setString(6, karyawan.getStatus());
             if (ubah) {
                 perintah.setInt(7, karyawan.getId());
@@ -135,8 +136,11 @@ public class KaryawanDao {
         }
     }
 
-    private String kosongJadiNull(String nilai) {
-        return nilai == null || nilai.trim().isEmpty() ? null : nilai.trim();
+    static void isiTanggalMasuk(PreparedStatement perintah, java.time.LocalDate tanggalMasuk) throws SQLException {
+        if (tanggalMasuk == null) {
+            throw new IllegalArgumentException("Tanggal masuk wajib diisi.");
+        }
+        perintah.setDate(5, Date.valueOf(tanggalMasuk));
     }
 
     private Karyawan petakanKaryawan(ResultSet hasil) throws SQLException {
@@ -146,7 +150,8 @@ public class KaryawanDao {
         karyawan.setNama(hasil.getString("nama"));
         karyawan.setDivisi(hasil.getString("divisi"));
         karyawan.setJabatan(hasil.getString("jabatan"));
-        karyawan.setTanggalMasuk(hasil.getString("tanggal_masuk"));
+        Date tanggalMasuk = hasil.getDate("tanggal_masuk");
+        karyawan.setTanggalMasuk(tanggalMasuk == null ? null : tanggalMasuk.toLocalDate());
         karyawan.setStatus(hasil.getString("status"));
         return karyawan;
     }

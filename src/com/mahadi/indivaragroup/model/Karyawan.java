@@ -1,12 +1,14 @@
 package com.mahadi.indivaragroup.model;
 
+import java.time.LocalDate;
+
 public class Karyawan {
     private int id;
     private String kodeKaryawan;
     private String nama;
     private String divisi;
     private String jabatan;
-    private String tanggalMasuk;
+    private LocalDate tanggalMasuk;
     private String status;
 
     public int getId() {
@@ -49,11 +51,11 @@ public class Karyawan {
         this.jabatan = jabatan;
     }
 
-    public String getTanggalMasuk() {
+    public LocalDate getTanggalMasuk() {
         return tanggalMasuk;
     }
 
-    public void setTanggalMasuk(String tanggalMasuk) {
+    public void setTanggalMasuk(LocalDate tanggalMasuk) {
         this.tanggalMasuk = tanggalMasuk;
     }
 

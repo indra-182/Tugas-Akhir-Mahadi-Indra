@@ -5,14 +5,15 @@ import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
 import com.mahadi.indivaragroup.dao.KaryawanDao;
 import com.mahadi.indivaragroup.model.Karyawan;
 import com.mahadi.indivaragroup.util.DialogUtil;
+import com.mahadi.indivaragroup.util.TanggalUtil;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.sql.SQLException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -41,6 +42,7 @@ public class KaryawanPanel extends JPanel {
     private final JTextField kodeField = new JTextField(18);
     private final JTextField namaField = new JTextField(18);
     private final JTextField jabatanField = new JTextField(18);
+    private final JTextField tanggalMasukField = new TeksPlaceholderField("YYYY-MM-DD", 18);
     private final JTextField pencarianField = new TeksPlaceholderField(
             "Cari berdasarkan kode karyawan", 18);
     private final JComboBox<String> statusComboBox = new JComboBox<>(new String[]{"AKTIF", "NONAKTIF"});
@@ -87,8 +89,9 @@ public class KaryawanPanel extends JPanel {
         tambahField(formPanel, batas, 0, "Kode Karyawan", kodeField);
         tambahField(formPanel, batas, 1, "Nama", namaField);
         tambahField(formPanel, batas, 2, "Jabatan", jabatanField);
-        tambahField(formPanel, batas, 3, "Status", statusComboBox);
-        tambahField(formPanel, batas, 4, "Search Data", pencarianField);
+        tambahField(formPanel, batas, 3, "Tanggal Masuk", tanggalMasukField);
+        tambahField(formPanel, batas, 4, "Status", statusComboBox);
+        tambahField(formPanel, batas, 5, "Search Data", pencarianField);
 
         JPanel tombolPanel = new JPanel(new GridBagLayout());
         tombolPanel.setBackground(Color.WHITE);
@@ -159,6 +162,8 @@ public class KaryawanPanel extends JPanel {
                 kodeField.setText(karyawan.getKodeKaryawan());
                 namaField.setText(karyawan.getNama());
                 jabatanField.setText(karyawan.getJabatan());
+                tanggalMasukField.setText(karyawan.getTanggalMasuk() == null
+                        ? "" : karyawan.getTanggalMasuk().toString());
                 statusComboBox.setSelectedItem(karyawan.getStatus());
             }
         });
@@ -198,6 +203,8 @@ public class KaryawanPanel extends JPanel {
             muatData();
         } catch (SQLException ex) {
             DialogUtil.showError(this, ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            DialogUtil.showError(this, ex.getMessage());
         }
     }
 
@@ -215,6 +222,8 @@ public class KaryawanPanel extends JPanel {
             bersihkanForm();
             muatData();
         } catch (SQLException ex) {
+            DialogUtil.showError(this, ex.getMessage());
+        } catch (IllegalArgumentException ex) {
             DialogUtil.showError(this, ex.getMessage());
         }
     }
@@ -242,6 +251,7 @@ public class KaryawanPanel extends JPanel {
         if (kodeField.getText().trim().isEmpty()
                 || namaField.getText().trim().isEmpty()
                 || jabatanField.getText().trim().isEmpty()
+                || tanggalMasukField.getText().trim().isEmpty()
                 || statusComboBox.getSelectedItem() == null
                 || statusComboBox.getSelectedItem().toString().trim().isEmpty()) {
             throw new IllegalArgumentException("Semua field data karyawan wajib diisi.");
@@ -252,7 +262,7 @@ public class KaryawanPanel extends JPanel {
         karyawan.setNama(namaField.getText().trim());
         karyawan.setJabatan(jabatanField.getText().trim());
         karyawan.setDivisi("Karyawan");
-        karyawan.setTanggalMasuk("");
+        karyawan.setTanggalMasuk(TanggalUtil.parseWajibIso(tanggalMasukField.getText(), "Tanggal masuk"));
         karyawan.setStatus(statusComboBox.getSelectedItem().toString());
         return karyawan;
     }
@@ -262,25 +272,22 @@ public class KaryawanPanel extends JPanel {
         kodeField.setText("");
         namaField.setText("");
         jabatanField.setText("");
+        tanggalMasukField.setText("");
         statusComboBox.setSelectedIndex(0);
         tabel.clearSelection();
     }
 
     private static class KaryawanTableModel extends AbstractTableModel {
         private final String[] kolom = {"No", "Kode Karyawan", "Nama", "Jabatan", "Tanggal Masuk", "Status"};
-        private static final SimpleDateFormat FORMAT_DB = new SimpleDateFormat("yyyy-MM-dd");
-        private static final SimpleDateFormat FORMAT_TAMPIL = new SimpleDateFormat("d MMMM yyyy", new Locale("id", "ID"));
+        private static final DateTimeFormatter FORMAT_TAMPIL = DateTimeFormatter.ofPattern(
+                "d MMMM uuuu", new Locale("id", "ID"));
         private List<Karyawan> data = new ArrayList<>();
 
-        private String formatTanggalMasuk(String tanggalMasuk) {
-            if (tanggalMasuk == null || tanggalMasuk.isEmpty()) {
+        private String formatTanggalMasuk(LocalDate tanggalMasuk) {
+            if (tanggalMasuk == null) {
                 return "";
             }
-            try {
-                return FORMAT_TAMPIL.format(FORMAT_DB.parse(tanggalMasuk));
-            } catch (ParseException ex) {
-                return tanggalMasuk;
-            }
+            return FORMAT_TAMPIL.format(tanggalMasuk);
         }
 
         public void setData(List<Karyawan> data) {

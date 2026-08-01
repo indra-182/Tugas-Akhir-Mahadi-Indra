@@ -30,7 +30,7 @@ Project Tugas Akhir:
    ```
 
    Skrip utama membuat admin demo, 100 karyawan, enam kriteria, dan penilaian tahun berjalan. Dua skrip seed menambahkan periode 2024 dan 2025.
-   Untuk database yang sudah ada, jalankan juga `database/migrasi_snapshot_perhitungan.sql`. Saat periode lampau pertama kali dibuka, aplikasi membuat snapshot TOPSIS yang membekukan kriteria, peserta, nilai, dan ranking periode tersebut.
+   Untuk database yang sudah ada, jalankan juga `database/migrasi_tanggal_masuk_wajib.sql` dan `database/migrasi_snapshot_perhitungan.sql`. Migrasi tanggal masuk akan berhenti bila masih ada data karyawan tanpa tanggal masuk. Saat periode lampau pertama kali dibuka, aplikasi membuat snapshot TOPSIS yang membekukan kriteria, peserta, nilai, dan ranking periode tersebut.
 3. Pada `database/buat_role_aplikasi.sql`, ganti `GANTI_DENGAN_PASSWORD_KUAT` dengan password khusus aplikasi, lalu jalankan sebagai pemilik project. Skrip memberi role `app_topsis` akses ke skema aplikasi, mengaktifkan Row Level Security (RLS), dan memberi policy hanya untuk role tersebut.
 4. Isi `src/config.properties` memakai host, port, nama database, nama pengguna pooler, dan password role aplikasi. URL harus tetap memakai `sslmode=require`.
 

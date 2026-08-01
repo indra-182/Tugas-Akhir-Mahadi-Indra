@@ -5,6 +5,8 @@
 
     <property name="academic.test.classes" value="
         com.mahadi.indivaragroup.service.ValidasiEvaluasiTahunanTest
+        com.mahadi.indivaragroup.util.TanggalUtilTest
+        com.mahadi.indivaragroup.dao.KaryawanDaoTest
         com.mahadi.indivaragroup.service.PeringkatTopsisTest
         com.mahadi.indivaragroup.service.LaporanPerhitunganTopsisTest
         com.mahadi.indivaragroup.service.PerhitunganTopsisServiceIntegrationTest"/>
