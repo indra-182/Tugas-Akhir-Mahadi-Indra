@@ -12,15 +12,18 @@ import com.mahadi.indivaragroup.service.PeringkatTopsis;
 import com.mahadi.indivaragroup.service.LaporanPerhitunganTopsis;
 import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
 import com.mahadi.indivaragroup.service.PerhitunganTopsisService.PerhitunganDetail;
+import com.mahadi.indivaragroup.util.CetakPreviewRenderer;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.HeadlessException;
 import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.print.PageFormat;
@@ -42,9 +45,12 @@ import javax.print.attribute.HashPrintRequestAttributeSet;
 import javax.print.attribute.PrintRequestAttributeSet;
 import javax.print.attribute.standard.Destination;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -318,8 +324,65 @@ public class LaporanPanel extends JPanel {
 
         String namaLaporan = jenis;
         PrinterJob printerJob = PrinterJob.getPrinterJob();
+        PageFormat formatHalaman = printerJob.defaultPage();
+        CetakLaporanPrintable printable = new CetakLaporanPrintable();
         printerJob.setJobName(namaLaporan);
-        printerJob.setPrintable(new CetakLaporanPrintable());
+        printerJob.setPrintable(printable, formatHalaman);
+
+        tampilkanPreviewCetak(namaLaporan, printable, formatHalaman, printerJob);
+    }
+
+    private void tampilkanPreviewCetak(String namaLaporan, CetakLaporanPrintable printable,
+            PageFormat formatHalaman, PrinterJob printerJob) {
+        final List<BufferedImage> gambarPreview;
+        try {
+            gambarPreview = CetakPreviewRenderer.renderAll(printable, formatHalaman);
+        } catch (PrinterException ex) {
+            DialogUtil.showError(this, ex.getMessage());
+            return;
+        }
+
+        if (gambarPreview.isEmpty()) {
+            DialogUtil.showWarning(this, "Tidak ada halaman laporan untuk ditampilkan.");
+            return;
+        }
+
+        JDialog dialogPreview = new JDialog();
+        dialogPreview.setTitle("Preview " + namaLaporan);
+        dialogPreview.setModal(true);
+        dialogPreview.setLayout(new BorderLayout(10, 10));
+
+        JPanel panelHalaman = new JPanel();
+        panelHalaman.setLayout(new BoxLayout(panelHalaman, BoxLayout.Y_AXIS));
+        panelHalaman.setBackground(Color.WHITE);
+        for (BufferedImage gambar : gambarPreview) {
+            JLabel labelPreview = new JLabel(new ImageIcon(gambar));
+            labelPreview.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+            panelHalaman.add(labelPreview);
+        }
+
+        JScrollPane panelGulir = new JScrollPane(panelHalaman);
+        panelGulir.setPreferredSize(new Dimension(760, 740));
+        dialogPreview.add(panelGulir, BorderLayout.CENTER);
+
+        JPanel panelTombol = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton cetakButton = new JButton("Cetak / Simpan PDF");
+        JButton tutupButton = new JButton("Tutup");
+        cetakButton.addActionListener(e -> {
+            dialogPreview.dispose();
+            cetakKePrinter(namaLaporan, printerJob);
+        });
+        tutupButton.addActionListener(e -> dialogPreview.dispose());
+        panelTombol.add(tutupButton);
+        panelTombol.add(cetakButton);
+        dialogPreview.add(panelTombol, BorderLayout.SOUTH);
+
+        dialogPreview.pack();
+        dialogPreview.setLocationRelativeTo(this);
+        dialogPreview.setVisible(true);
+    }
+
+    private void cetakKePrinter(String namaLaporan, PrinterJob printerJob) {
 
         File folderUnduhan = new File(System.getProperty("user.home"), "Downloads");
         File fileHasil = new File(folderUnduhan, namaLaporan + ".pdf");
