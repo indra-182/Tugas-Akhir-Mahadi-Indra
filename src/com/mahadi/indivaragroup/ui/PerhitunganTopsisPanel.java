@@ -37,6 +37,10 @@ import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 
 public class PerhitunganTopsisPanel extends JPanel {
+    private static final int TINGGI_TABEL_MINIMUM = 190;
+    private static final int BATAS_DATA_BANYAK = 10;
+    private static final int JUMLAH_BARIS_DATA_BANYAK = 25;
+
     private final KaryawanDao karyawanDao = new KaryawanDao();
     private final KriteriaDao kriteriaDao = new KriteriaDao();
     private final PenilaianDao penilaianDao = new PenilaianDao();
@@ -164,7 +168,7 @@ public class PerhitunganTopsisPanel extends JPanel {
         for (int i = 0; i < daftarKriteria.size(); i++) {
             kolom[i + 3] = daftarKriteria.get(i).getKode();
         }
-        return kolom;
+        return tambahKolomNo(kolom);
     }
 
     private void prosesPerhitungan() {
@@ -222,7 +226,8 @@ public class PerhitunganTopsisPanel extends JPanel {
         tabelBagian.setAutoCreateRowSorter(true);
         TampilanUtil.rapikanTabel(tabelBagian);
         JScrollPane scrollPane = new JScrollPane(tabelBagian);
-        int tinggi = Math.min(190, 58 + (model.getRowCount() * 24));
+        int tinggi = hitungTinggiTabel(model.getRowCount(), tabelBagian.getRowHeight(),
+                tabelBagian.getTableHeader().getPreferredSize().height);
         scrollPane.setPreferredSize(new Dimension(900, Math.max(110, tinggi)));
 
         bagianPanel.add(judulLabel, BorderLayout.NORTH);
@@ -233,18 +238,19 @@ public class PerhitunganTopsisPanel extends JPanel {
     private DefaultTableModel buatModelDataAwal(List<Karyawan> daftarKaryawan, List<Kriteria> daftarKriteria,
             Map<Integer, Map<Integer, Double>> matriksPenilaian) {
         DefaultTableModel model = buatModelTidakBisaEdit(buatKolomDataAwal(daftarKriteria));
-        for (Karyawan karyawan : daftarKaryawan) {
+        for (int i = 0; i < daftarKaryawan.size(); i++) {
+            Karyawan karyawan = daftarKaryawan.get(i);
             Object[] baris = new Object[daftarKriteria.size() + 3];
             baris[0] = karyawan.getKodeKaryawan();
             baris[1] = karyawan.getNama();
             baris[2] = karyawan.getJabatan();
             Map<Integer, Double> nilaiKaryawan = matriksPenilaian.get(karyawan.getId());
-            for (int i = 0; i < daftarKriteria.size(); i++) {
-                Kriteria kriteria = daftarKriteria.get(i);
+            for (int j = 0; j < daftarKriteria.size(); j++) {
+                Kriteria kriteria = daftarKriteria.get(j);
                 Double nilai = nilaiKaryawan == null ? null : nilaiKaryawan.get(kriteria.getId());
-                baris[i + 3] = nilai == null ? "-" : NumberUtil.format(nilai);
+                baris[j + 3] = nilai == null ? "-" : NumberUtil.format(nilai);
             }
-            model.addRow(baris);
+            model.addRow(tambahNomor(baris, i + 1));
         }
         return model;
     }
@@ -272,71 +278,95 @@ public class PerhitunganTopsisPanel extends JPanel {
             for (int j = 0; j < detail.getDaftarKriteria().size(); j++) {
                 baris[j + 3] = NumberUtil.format(matriks[i][j]);
             }
-            model.addRow(baris);
+            model.addRow(tambahNomor(baris, i + 1));
         }
         return model;
     }
 
     private DefaultTableModel buatModelPembagiNormalisasi(PerhitunganDetail detail) {
-        DefaultTableModel model = buatModelTidakBisaEdit(new Object[]{"Kode", "Kriteria", "Bobot", "Pembagi"});
+        DefaultTableModel model = buatModelTidakBisaEdit(tambahKolomNo(
+                new Object[]{"Kode", "Kriteria", "Bobot", "Pembagi"}));
         double[] pembagi = detail.getPembagiNormalisasi();
         for (int i = 0; i < detail.getDaftarKriteria().size(); i++) {
             Kriteria kriteria = detail.getDaftarKriteria().get(i);
-            model.addRow(new Object[]{
+            model.addRow(tambahNomor(new Object[]{
                 kriteria.getKode(),
                 kriteria.getNama(),
                 NumberUtil.format(kriteria.getBobot()),
                 NumberUtil.format(pembagi[i])
-            });
+            }, i + 1));
         }
         return model;
     }
 
     private DefaultTableModel buatModelSolusiIdeal(PerhitunganDetail detail) {
-        DefaultTableModel model = buatModelTidakBisaEdit(new Object[]{"Kode", "Kriteria", "Tipe", "A+", "A-"});
+        DefaultTableModel model = buatModelTidakBisaEdit(tambahKolomNo(
+                new Object[]{"Kode", "Kriteria", "Tipe", "A+", "A-"}));
         for (int i = 0; i < detail.getDaftarKriteria().size(); i++) {
             Kriteria kriteria = detail.getDaftarKriteria().get(i);
-            model.addRow(new Object[]{
+            model.addRow(tambahNomor(new Object[]{
                 kriteria.getKode(),
                 kriteria.getNama(),
                 kriteria.getTipe(),
                 NumberUtil.format(detail.getSolusiIdealPositif()[i]),
                 NumberUtil.format(detail.getSolusiIdealNegatif()[i])
-            });
+            }, i + 1));
         }
         return model;
     }
 
     private DefaultTableModel buatModelJarakPreferensi(PerhitunganDetail detail) {
-        DefaultTableModel model = buatModelTidakBisaEdit(new Object[]{
+        DefaultTableModel model = buatModelTidakBisaEdit(tambahKolomNo(new Object[]{
             "Kode Karyawan", "Nama Karyawan", "D+", "D-", "Nilai Preferensi"
-        });
+        }));
         for (int i = 0; i < detail.getDaftarKaryawan().size(); i++) {
             Karyawan karyawan = detail.getDaftarKaryawan().get(i);
-            model.addRow(new Object[]{
+            model.addRow(tambahNomor(new Object[]{
                 karyawan.getKodeKaryawan(),
                 karyawan.getNama(),
                 NumberUtil.format(detail.getJarakPositif()[i]),
                 NumberUtil.format(detail.getJarakNegatif()[i]),
                 NumberUtil.format(detail.getNilaiPreferensi()[i])
-            });
+            }, i + 1));
         }
         return model;
     }
 
     private DefaultTableModel buatModelHasilRanking(List<HasilRanking> daftarHasilRanking) {
-        DefaultTableModel model = buatModelTidakBisaEdit(new Object[]{
+        DefaultTableModel model = buatModelTidakBisaEdit(tambahKolomNo(new Object[]{
             "Peringkat", "Kode Karyawan", "Nama Karyawan", "Nilai TOPSIS"
-        });
-        for (HasilRanking hasilRanking : daftarHasilRanking) {
-            model.addRow(new Object[]{
+        }));
+        for (int i = 0; i < daftarHasilRanking.size(); i++) {
+            HasilRanking hasilRanking = daftarHasilRanking.get(i);
+            model.addRow(tambahNomor(new Object[]{
                 hasilRanking.getPeringkat(),
                 hasilRanking.getKodeKaryawan(),
                 hasilRanking.getNamaKaryawan(),
                 NumberUtil.format(hasilRanking.getNilaiTopsis())
-            });
+            }, i + 1));
         }
         return model;
+    }
+
+    static Object[] tambahKolomNo(Object[] kolom) {
+        Object[] hasil = new Object[kolom.length + 1];
+        hasil[0] = "No";
+        System.arraycopy(kolom, 0, hasil, 1, kolom.length);
+        return hasil;
+    }
+
+    static Object[] tambahNomor(Object[] nilaiBaris, int nomor) {
+        Object[] hasil = new Object[nilaiBaris.length + 1];
+        hasil[0] = nomor;
+        System.arraycopy(nilaiBaris, 0, hasil, 1, nilaiBaris.length);
+        return hasil;
+    }
+
+    static int hitungTinggiTabel(int jumlahBaris, int tinggiBaris, int tinggiHeader) {
+        int barisTampil = jumlahBaris > BATAS_DATA_BANYAK
+                ? JUMLAH_BARIS_DATA_BANYAK : Math.max(1, jumlahBaris);
+        int tinggiIsi = tinggiHeader + (barisTampil * tinggiBaris) + 4;
+        return Math.max(TINGGI_TABEL_MINIMUM, tinggiIsi);
     }
 
     private DefaultTableModel buatModelTidakBisaEdit(Object[] kolom) {
