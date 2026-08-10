@@ -13,6 +13,7 @@ import com.mahadi.indivaragroup.service.LaporanPerhitunganTopsis;
 import com.mahadi.indivaragroup.service.PerhitunganTopsisService;
 import com.mahadi.indivaragroup.service.PerhitunganTopsisService.PerhitunganDetail;
 import com.mahadi.indivaragroup.util.CetakPreviewRenderer;
+import com.mahadi.indivaragroup.util.PaginasiLaporan;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Desktop;
@@ -65,6 +66,10 @@ public class LaporanPanel extends JPanel {
     private static final String ALAMAT_BARIS_3 = "Daerah Khusus Ibukota Jakarta 14240";
     private static final String TELEPON = "Telepon: (021) 22455773";
     private static final String NAMA_PENANDATANGAN = "Pimpinan PT. Indivara Group";
+
+    static boolean tampilkanKop(int pageIndex) {
+        return pageIndex == 0;
+    }
 
     private static final String LAPORAN_DATA_RANKING = "Laporan Data Ranking";
     private static final String LAPORAN_DATA_PENILAIAN = "Laporan Data Penilaian";
@@ -435,6 +440,8 @@ public class LaporanPanel extends JPanel {
         private static final int MARGIN_KONTEN = 20;
         private static final int TINGGI_BARIS = 18;
         private static final int TINGGI_HEADER_TABEL = 22;
+        private static final int TINGGI_CADANGAN_LAPORAN = 150;
+        private static final int TINGGI_CADANGAN_PERHITUNGAN = 180;
         private static final int LEBAR_LOGO = 90;
         private static final int TINGGI_LOGO = 75;
 
@@ -455,20 +462,29 @@ public class LaporanPanel extends JPanel {
             int yAwal = (int) pageFormat.getImageableY() + MARGIN_KONTEN;
             int lebarKonten = (int) pageFormat.getImageableWidth() - (MARGIN_KONTEN * 2);
             int tinggiKonten = (int) pageFormat.getImageableHeight() - (MARGIN_KONTEN * 2);
-            int yTabel = gambarKopLaporan(grafik, xAwal, yAwal, lebarKonten,
-                    jenisLaporanComboBox.getSelectedItem().toString().toUpperCase());
-            int tinggiAreaTabel = tinggiKonten - (yTabel - yAwal) - 150;
-            int jumlahBarisPerHalaman = Math.max(1, (tinggiAreaTabel - TINGGI_HEADER_TABEL) / TINGGI_BARIS);
-            int barisMulai = pageIndex * jumlahBarisPerHalaman;
-
-            if (barisMulai >= tableModel.getRowCount()) {
+            boolean tampilkanKonvensiPeringkat = menampilkanKonvensiPeringkat();
+            int tinggiKop = hitungTinggiKop(tampilkanKonvensiPeringkat);
+            int kapasitasHalamanPertama = hitungKapasitasBaris(tinggiKonten, tinggiKop,
+                    TINGGI_CADANGAN_LAPORAN);
+            int kapasitasHalamanBerikutnya = hitungKapasitasBaris(tinggiKonten, 0,
+                    TINGGI_CADANGAN_LAPORAN);
+            List<PaginasiLaporan.RentangHalaman> halaman = PaginasiLaporan.buat(
+                    tableModel.getRowCount(), kapasitasHalamanPertama, kapasitasHalamanBerikutnya);
+            if (pageIndex >= halaman.size()) {
                 return NO_SUCH_PAGE;
             }
 
-            int barisAkhir = Math.min(tableModel.getRowCount(), barisMulai + jumlahBarisPerHalaman);
+            PaginasiLaporan.RentangHalaman rentang = halaman.get(pageIndex);
+            int yTabel = yAwal;
+            if (tampilkanKop(pageIndex)) {
+                yTabel = gambarKopLaporan(grafik, xAwal, yAwal, lebarKonten,
+                        jenisLaporanComboBox.getSelectedItem().toString().toUpperCase());
+            }
+            int barisMulai = rentang.getBarisMulai();
+            int barisAkhir = rentang.getBarisAkhir();
             gambarTabel(grafik, xAwal, yTabel, lebarKonten, barisMulai, barisAkhir);
 
-            if (barisAkhir >= tableModel.getRowCount()) {
+            if (pageIndex == halaman.size() - 1) {
                 gambarTandaTangan(grafik, xAwal, yAwal + tinggiKonten - 130, lebarKonten);
             }
             return PAGE_EXISTS;
@@ -481,35 +497,57 @@ public class LaporanPanel extends JPanel {
             int lebarKonten = (int) pageFormat.getImageableWidth() - (MARGIN_KONTEN * 2);
             int tinggiKonten = (int) pageFormat.getImageableHeight() - (MARGIN_KONTEN * 2);
             String judul = "LAPORAN EVALUASI TOPSIS TAHUN " + laporanPerhitunganTopsis.getTahun();
-            int yBagian = gambarKopLaporan(grafik, xAwal, yAwal, lebarKonten, judul);
-            int jumlahBarisPerHalaman = Math.max(1,
-                    (tinggiKonten - (yBagian - yAwal) - 180 - TINGGI_HEADER_TABEL) / TINGGI_BARIS);
-
-            int sisaHalaman = pageIndex;
-            for (LaporanPerhitunganTopsis.Bagian bagian : laporanPerhitunganTopsis.getDaftarBagian()) {
-                List<String[]> baris = bagian.getBaris();
-                int jumlahHalamanBagian = Math.max(1,
-                        (baris.size() + jumlahBarisPerHalaman - 1) / jumlahBarisPerHalaman);
-                if (sisaHalaman >= jumlahHalamanBagian) {
-                    sisaHalaman -= jumlahHalamanBagian;
-                    continue;
-                }
-
-                int barisMulai = sisaHalaman * jumlahBarisPerHalaman;
-                int barisAkhir = Math.min(baris.size(), barisMulai + jumlahBarisPerHalaman);
-                grafik.setFont(fontSubJudul);
-                grafik.setColor(Color.BLACK);
-                grafik.drawString(bagian.getJudul(), xAwal, yBagian + 16);
-                gambarTabel(grafik, xAwal, yBagian + 24, lebarKonten, bagian.getKolom(),
-                        baris, barisMulai, barisAkhir);
-                if (bagian == laporanPerhitunganTopsis.getDaftarBagian().get(
-                        laporanPerhitunganTopsis.getDaftarBagian().size() - 1)
-                        && barisAkhir >= baris.size()) {
-                    gambarTandaTangan(grafik, xAwal, yAwal + tinggiKonten - 130, lebarKonten);
-                }
-                return PAGE_EXISTS;
+            List<LaporanPerhitunganTopsis.Bagian> daftarBagian =
+                    laporanPerhitunganTopsis.getDaftarBagian();
+            List<Integer> jumlahBarisBagian = new java.util.ArrayList<Integer>();
+            for (LaporanPerhitunganTopsis.Bagian bagian : daftarBagian) {
+                jumlahBarisBagian.add(bagian.getBaris().size());
             }
-            return NO_SUCH_PAGE;
+
+            int tinggiKop = hitungTinggiKop(true);
+            int kapasitasHalamanPertama = hitungKapasitasBaris(tinggiKonten, tinggiKop,
+                    TINGGI_CADANGAN_PERHITUNGAN);
+            int kapasitasHalamanBerikutnya = hitungKapasitasBaris(tinggiKonten, 0,
+                    TINGGI_CADANGAN_PERHITUNGAN);
+            List<PaginasiLaporan.RentangHalaman> halaman = PaginasiLaporan.buatBagian(
+                    jumlahBarisBagian, kapasitasHalamanPertama, kapasitasHalamanBerikutnya);
+            if (pageIndex >= halaman.size()) {
+                return NO_SUCH_PAGE;
+            }
+
+            PaginasiLaporan.RentangHalaman rentang = halaman.get(pageIndex);
+            LaporanPerhitunganTopsis.Bagian bagian = daftarBagian.get(rentang.getIndeksBagian());
+            int yBagian = yAwal;
+            if (tampilkanKop(pageIndex)) {
+                yBagian = gambarKopLaporan(grafik, xAwal, yAwal, lebarKonten, judul);
+            }
+
+            List<String[]> baris = bagian.getBaris();
+            grafik.setFont(fontSubJudul);
+            grafik.setColor(Color.BLACK);
+            grafik.drawString(bagian.getJudul(), xAwal, yBagian + 16);
+            gambarTabel(grafik, xAwal, yBagian + 24, lebarKonten, bagian.getKolom(),
+                    baris, rentang.getBarisMulai(), rentang.getBarisAkhir());
+            if (pageIndex == halaman.size() - 1) {
+                gambarTandaTangan(grafik, xAwal, yAwal + tinggiKonten - 130, lebarKonten);
+            }
+            return PAGE_EXISTS;
+        }
+
+        private boolean menampilkanKonvensiPeringkat() {
+            return laporanPerhitunganTopsis != null
+                    || LAPORAN_DATA_RANKING.equals(jenisLaporanComboBox.getSelectedItem().toString());
+        }
+
+        private int hitungTinggiKop(boolean tampilkanKonvensiPeringkat) {
+            int tinggi = 18 + 16 + 13 + 13 + 13 + 34 + 20;
+            return tampilkanKonvensiPeringkat ? tinggi + 14 : tinggi;
+        }
+
+        private int hitungKapasitasBaris(int tinggiKonten, int tinggiKop,
+                int tinggiCadangan) {
+            return Math.max(1, (tinggiKonten - tinggiKop - tinggiCadangan
+                    - TINGGI_HEADER_TABEL) / TINGGI_BARIS);
         }
 
         private Image muatLogo() {
