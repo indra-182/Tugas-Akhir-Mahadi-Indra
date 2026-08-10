@@ -10,7 +10,8 @@
         com.mahadi.indivaragroup.service.PeringkatTopsisTest
         com.mahadi.indivaragroup.service.LaporanPerhitunganTopsisTest
         com.mahadi.indivaragroup.service.PerhitunganTopsisServiceIntegrationTest
-        com.mahadi.indivaragroup.util.CetakPreviewRendererTest"/>
+        com.mahadi.indivaragroup.util.CetakPreviewRendererTest
+        com.mahadi.indivaragroup.util.PaginasiLaporanTest"/>
 
     <target name="verify-academic" depends="test-compile" description="Run reproducible academic verification tests.">
         <java classname="com.mahadi.indivaragroup.TestRunner" fork="true" failonerror="true">
