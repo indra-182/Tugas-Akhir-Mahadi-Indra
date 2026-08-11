@@ -16,6 +16,7 @@ import com.mahadi.indivaragroup.util.CetakPreviewRenderer;
 import com.mahadi.indivaragroup.util.PaginasiLaporan;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -69,6 +70,24 @@ public class LaporanPanel extends JPanel {
 
     static boolean tampilkanKop(int pageIndex) {
         return pageIndex == 0;
+    }
+
+    static boolean gunakanRendererPerhitungan(String jenisLaporan,
+            boolean adaLaporanPerhitungan) {
+        return adaLaporanPerhitungan && !LAPORAN_DATA_RANKING.equals(jenisLaporan);
+    }
+
+    static Object[][] buatBarisTren(List<HasilRanking> daftarRiwayat) {
+        Object[][] baris = new Object[daftarRiwayat.size()][];
+        for (int i = 0; i < daftarRiwayat.size(); i++) {
+            HasilRanking ranking = daftarRiwayat.get(i);
+            baris[i] = new Object[]{
+                ranking.getTahun(),
+                ranking.getPeringkat(),
+                NumberUtil.format(ranking.getNilaiTopsis())
+            };
+        }
+        return baris;
     }
 
     private static final String LAPORAN_DATA_RANKING = "Laporan Data Ranking";
@@ -172,6 +191,11 @@ public class LaporanPanel extends JPanel {
         boolean tampilKaryawan = LAPORAN_TREN_KARYAWAN.equals(jenis);
         tahunComboBox.setVisible(tampilTahun);
         karyawanComboBox.setVisible(tampilKaryawan);
+        Container panelAksi = tahunComboBox.getParent();
+        if (panelAksi != null) {
+            panelAksi.revalidate();
+            panelAksi.repaint();
+        }
     }
 
     private void pasangEventPanel() {
@@ -189,9 +213,12 @@ public class LaporanPanel extends JPanel {
         try {
             String jenis = jenisLaporanComboBox.getSelectedItem().toString();
             laporanPerhitunganTopsis = null;
+            tableModel.setDataVector(new Object[][]{}, new Object[]{"Informasi"});
             judulPanel.removeAll();
             judulPanel.add(TampilanUtil.buatJudul(jenis.toUpperCase()), BorderLayout.CENTER);
             terapkanTampilanSelector(jenis);
+            judulPanel.revalidate();
+            judulPanel.repaint();
 
             switch (jenis) {
                 case LAPORAN_DATA_PENILAIAN:
@@ -283,15 +310,8 @@ public class LaporanPanel extends JPanel {
             return;
         }
 
-        for (Integer tahun : penilaianDao.ambilDaftarTahunByKaryawan(karyawanTerpilih.getId())) {
-            if (tahun < Year.now().getValue()) {
-                try {
-                    topsisService.ambilDetailHistoris(tahun);
-                } catch (IllegalArgumentException ex) {
-                    // Periode legacy yang tidak lengkap tidak punya nilai tren yang valid; periode lain tetap ditampilkan.
-                }
-            }
-        }
+        String[] kolomTren = new String[]{"Tahun", "Peringkat", "Nilai TOPSIS"};
+        tableModel.setDataVector(new Object[][]{}, kolomTren);
         List<HasilRanking> daftarRiwayat = snapshotDao.ambilRiwayat(karyawanTerpilih.getId());
         if (daftarRiwayat.isEmpty()) daftarRiwayat = hasilRankingDao.ambilRiwayatByKaryawan(karyawanTerpilih.getId());
         if (daftarRiwayat.isEmpty()) {
@@ -299,14 +319,7 @@ public class LaporanPanel extends JPanel {
             return;
         }
 
-        tableModel.setDataVector(new Object[][]{}, new Object[]{"Tahun", "Peringkat", "Nilai TOPSIS"});
-        daftarRiwayat.forEach((ranking) -> {
-            tableModel.addRow(new Object[]{
-                ranking.getTahun(),
-                ranking.getPeringkat(),
-                NumberUtil.format(ranking.getNilaiTopsis())
-            });
-        });
+        tableModel.setDataVector(buatBarisTren(daftarRiwayat), kolomTren);
     }
 
     private void tampilkanPesanInfo(String pesan) {
@@ -454,7 +467,8 @@ public class LaporanPanel extends JPanel {
 
         @Override
         public int print(Graphics graphics, PageFormat pageFormat, int pageIndex) throws PrinterException {
-            if (laporanPerhitunganTopsis != null) {
+            String jenisLaporan = jenisLaporanComboBox.getSelectedItem().toString();
+            if (gunakanRendererPerhitungan(jenisLaporan, laporanPerhitunganTopsis != null)) {
                 return cetakLaporanPerhitungan(graphics, pageFormat, pageIndex);
             }
             Graphics2D grafik = (Graphics2D) graphics;
@@ -561,7 +575,6 @@ public class LaporanPanel extends JPanel {
 
         private int gambarKopLaporan(Graphics2D grafik, int xAwal, int yAwal, int lebarKonten, String judulLaporan) {
             grafik.setColor(Color.BLACK);
-            grafik.drawRect(xAwal - 10, yAwal - 10, lebarKonten + 20, 760);
 
             if (logo != null) {
                 grafik.drawImage(logo, xAwal + 18, yAwal + 8, LEBAR_LOGO, TINGGI_LOGO, null);
@@ -578,7 +591,9 @@ public class LaporanPanel extends JPanel {
             gambarTeksTengah(grafik, ALAMAT_BARIS_3, tengah, y, fontNormal);
             y += 13;
             gambarTeksTengah(grafik, TELEPON, tengah, y, fontNormal);
-            y += 34;
+            y += 17;
+            grafik.drawLine(xAwal, y, xAwal + lebarKonten, y);
+            y += 17;
             gambarTeksTengah(grafik, judulLaporan, tengah, y, fontSubJudul);
             if (laporanPerhitunganTopsis != null
                     || LAPORAN_DATA_RANKING.equals(jenisLaporanComboBox.getSelectedItem().toString())) {
