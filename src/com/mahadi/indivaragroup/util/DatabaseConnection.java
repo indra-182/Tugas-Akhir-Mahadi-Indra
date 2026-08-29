@@ -104,17 +104,4 @@ public final class DatabaseConnection {
         }
     }
 
-    /**
-     * Menutup resource JDBC tanpa melempar exception.
-     * Koneksi bersama sengaja dilewati agar tetap bisa dipakai ulang.
-     */
-    public static void closeQuietly(AutoCloseable closeable) {
-        if (closeable == null || closeable == koneksiBersama) {
-            return;
-        }
-        try {
-            closeable.close();
-        } catch (Exception ignored) {
-        }
-    }
 }

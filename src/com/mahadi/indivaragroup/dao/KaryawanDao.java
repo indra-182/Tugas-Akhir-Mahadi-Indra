@@ -50,76 +50,54 @@ public class KaryawanDao {
 
     public void hapus(int id) throws SQLException {
         String sql = "DELETE FROM karyawan WHERE id = ?";
-        Connection koneksi = null;
-        PreparedStatement perintah = null;
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintah = koneksi.prepareStatement(sql);
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql)) {
             perintah.setInt(1, id);
             perintah.executeUpdate();
-        } finally {
-            DatabaseConnection.closeQuietly(perintah);
-            DatabaseConnection.closeQuietly(koneksi);
         }
     }
 
     private List<Karyawan> ambilDaftarKaryawan(String sql, String status) throws SQLException {
         List<Karyawan> daftarKaryawan = new ArrayList<Karyawan>();
-        Connection koneksi = null;
-        PreparedStatement perintah = null;
-        ResultSet hasil = null;
-
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintah = koneksi.prepareStatement(sql);
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql)) {
             if (status != null) {
                 perintah.setString(1, status);
             }
-            hasil = perintah.executeQuery();
-            while (hasil.next()) {
-                daftarKaryawan.add(petakanKaryawan(hasil));
+            try (ResultSet hasil = perintah.executeQuery()) {
+                while (hasil.next()) {
+                    daftarKaryawan.add(petakanKaryawan(hasil));
+                }
             }
-            return daftarKaryawan;
-        } finally {
-            DatabaseConnection.closeQuietly(hasil);
-            DatabaseConnection.closeQuietly(perintah);
-            DatabaseConnection.closeQuietly(koneksi);
         }
+        return daftarKaryawan;
     }
 
     private List<Karyawan> ambilDaftarKaryawanDenganTahun(String sql, int tahun) throws SQLException {
         List<Karyawan> daftarKaryawan = new ArrayList<Karyawan>();
-        Connection koneksi = null; PreparedStatement perintah = null; ResultSet hasil = null;
-        try {
-            koneksi = DatabaseConnection.getConnection(); perintah = koneksi.prepareStatement(sql);
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql)) {
             perintah.setInt(1, tahun);
-            hasil = perintah.executeQuery(); while (hasil.next()) daftarKaryawan.add(petakanKaryawan(hasil));
-        } finally { DatabaseConnection.closeQuietly(hasil); DatabaseConnection.closeQuietly(perintah); DatabaseConnection.closeQuietly(koneksi); }
+            try (ResultSet hasil = perintah.executeQuery()) {
+                while (hasil.next()) {
+                    daftarKaryawan.add(petakanKaryawan(hasil));
+                }
+            }
+        }
         return daftarKaryawan;
     }
 
     private int hitungData(String sql) throws SQLException {
-        Connection koneksi = null;
-        PreparedStatement perintah = null;
-        ResultSet hasil = null;
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintah = koneksi.prepareStatement(sql);
-            hasil = perintah.executeQuery();
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql);
+                ResultSet hasil = perintah.executeQuery()) {
             return hasil.next() ? hasil.getInt("jumlah") : 0;
-        } finally {
-            DatabaseConnection.closeQuietly(hasil);
-            DatabaseConnection.closeQuietly(perintah);
-            DatabaseConnection.closeQuietly(koneksi);
         }
     }
 
     private void simpan(String sql, Karyawan karyawan, boolean ubah) throws SQLException {
-        Connection koneksi = null;
-        PreparedStatement perintah = null;
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintah = koneksi.prepareStatement(sql);
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql)) {
             perintah.setString(1, karyawan.getKodeKaryawan());
             perintah.setString(2, karyawan.getNama());
             perintah.setString(3, karyawan.getDivisi());
@@ -130,9 +108,6 @@ public class KaryawanDao {
                 perintah.setInt(7, karyawan.getId());
             }
             perintah.executeUpdate();
-        } finally {
-            DatabaseConnection.closeQuietly(perintah);
-            DatabaseConnection.closeQuietly(koneksi);
         }
     }
 

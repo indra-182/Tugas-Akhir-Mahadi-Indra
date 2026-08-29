@@ -13,40 +13,22 @@ public class KriteriaDao {
     public List<Kriteria> ambilSemua() throws SQLException {
         String sql = "SELECT id, kode, nama, bobot, tipe, keterangan FROM kriteria ORDER BY kode";
         List<Kriteria> daftarKriteria = new ArrayList<>();
-        Connection koneksi = null;
-        PreparedStatement perintah = null;
-        ResultSet hasil = null;
-
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintah = koneksi.prepareStatement(sql);
-            hasil = perintah.executeQuery();
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql);
+                ResultSet hasil = perintah.executeQuery()) {
             while (hasil.next()) {
                 daftarKriteria.add(petakanKriteria(hasil));
             }
-            return daftarKriteria;
-        } finally {
-            DatabaseConnection.closeQuietly(hasil);
-            DatabaseConnection.closeQuietly(perintah);
-            DatabaseConnection.closeQuietly(koneksi);
         }
+        return daftarKriteria;
     }
 
     public int hitungSemua() throws SQLException {
         String sql = "SELECT COUNT(*) AS jumlah FROM kriteria";
-        Connection koneksi = null;
-        PreparedStatement perintah = null;
-        ResultSet hasil = null;
-
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintah = koneksi.prepareStatement(sql);
-            hasil = perintah.executeQuery();
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql);
+                ResultSet hasil = perintah.executeQuery()) {
             return hasil.next() ? hasil.getInt("jumlah") : 0;
-        } finally {
-            DatabaseConnection.closeQuietly(hasil);
-            DatabaseConnection.closeQuietly(perintah);
-            DatabaseConnection.closeQuietly(koneksi);
         }
     }
 
@@ -62,25 +44,16 @@ public class KriteriaDao {
 
     public void hapus(int id) throws SQLException {
         String sql = "DELETE FROM kriteria WHERE id = ?";
-        Connection koneksi = null;
-        PreparedStatement perintah = null;
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintah = koneksi.prepareStatement(sql);
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql)) {
             perintah.setInt(1, id);
             perintah.executeUpdate();
-        } finally {
-            DatabaseConnection.closeQuietly(perintah);
-            DatabaseConnection.closeQuietly(koneksi);
         }
     }
 
     private void simpan(String sql, Kriteria kriteria, boolean ubah) throws SQLException {
-        Connection koneksi = null;
-        PreparedStatement perintah = null;
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintah = koneksi.prepareStatement(sql);
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql)) {
             perintah.setString(1, kriteria.getKode());
             perintah.setString(2, kriteria.getNama());
             perintah.setDouble(3, kriteria.getBobot());
@@ -90,9 +63,6 @@ public class KriteriaDao {
                 perintah.setInt(6, kriteria.getId());
             }
             perintah.executeUpdate();
-        } finally {
-            DatabaseConnection.closeQuietly(perintah);
-            DatabaseConnection.closeQuietly(koneksi);
         }
     }
 
