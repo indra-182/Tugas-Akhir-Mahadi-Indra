@@ -451,10 +451,11 @@ public class LaporanPanel extends JPanel {
 
     private class CetakLaporanPrintable implements Printable {
         private static final int MARGIN_KONTEN = 20;
-        private static final int TINGGI_BARIS = 18;
+        private static final int TINGGI_BARIS = 14;
         private static final int TINGGI_HEADER_TABEL = 22;
         private static final int TINGGI_CADANGAN_LAPORAN = 150;
-        private static final int TINGGI_CADANGAN_PERHITUNGAN = 180;
+        private static final int TINGGI_CADANGAN_PERHITUNGAN = 150;
+        private static final int MAKS_BARIS_PER_HALAMAN = 20;
         private static final int LEBAR_LOGO = 90;
         private static final int TINGGI_LOGO = 75;
 
@@ -560,8 +561,9 @@ public class LaporanPanel extends JPanel {
 
         private int hitungKapasitasBaris(int tinggiKonten, int tinggiKop,
                 int tinggiCadangan) {
-            return Math.max(1, (tinggiKonten - tinggiKop - tinggiCadangan
-                    - TINGGI_HEADER_TABEL) / TINGGI_BARIS);
+            return Math.min(MAKS_BARIS_PER_HALAMAN,
+                    Math.max(1, (tinggiKonten - tinggiKop - tinggiCadangan
+                            - TINGGI_HEADER_TABEL) / TINGGI_BARIS));
         }
 
         private Image muatLogo() {
@@ -642,7 +644,8 @@ public class LaporanPanel extends JPanel {
                 for (int indeksKolom = 0; indeksKolom < jumlahKolom; indeksKolom++) {
                     int x = xAwal + (indeksKolom * lebarKolom);
                     grafik.drawRect(x, y, lebarKolom, TINGGI_BARIS);
-                    gambarTeksPotong(grafik, baris.get(indeksBaris)[indeksKolom], x + 3, y + 13, lebarKolom - 6);
+                    gambarTeksPotong(grafik, baris.get(indeksBaris)[indeksKolom], x + 3,
+                            y + TINGGI_BARIS - 4, lebarKolom - 6);
                 }
                 y += TINGGI_BARIS;
             }
