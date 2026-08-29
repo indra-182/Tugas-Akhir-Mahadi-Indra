@@ -66,13 +66,11 @@ total bobot 1,00, Absensi sebagai kriteria cost, competition ranking, rekonstruk
 snapshot historis, dan isi laporan evaluasi. Perintah akan berhenti dengan status non-zero
 apabila ada tes yang gagal.
 
-Runner mendukung anotasi JUnit 4 `@Test` dan `@Test(expected = ...)`; tambahkan kelas tes baru
-ke properti `academic.test.classes` di `build.xml` agar ikut dijalankan oleh `ant test`.
 
 ## Operasional DVD dan reset
 
 - Semua pengguna DVD memakai satu database demo Supabase; perubahan yang mereka buat akan tersimpan.
-- Jika data perlu dikembalikan ke kondisi demo, pemilik project menjalankan kembali tiga skrip setup di atas. `database/reset_data_demo.sql` adalah pengingat prosedur tersebut.
+- Jika data perlu dikembalikan ke kondisi demo, pemilik project menjalankan kembali tiga skrip setup di atas.
 - Supabase Free Plan dapat menjeda project yang tidak aktif. Sebelum demonstrasi, pemilik project harus memastikan project aktif atau melanjutkannya dari dashboard Supabase.
 - Setelah mengisi kredensial nyata, buat ulang JAR dan uji dari folder distribusi dengan koneksi internet aktif.
 

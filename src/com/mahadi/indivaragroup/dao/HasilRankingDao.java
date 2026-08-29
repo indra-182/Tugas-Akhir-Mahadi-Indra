@@ -12,17 +12,10 @@ import java.util.List;
 public class HasilRankingDao {
     public void hapusSemua(int tahun) throws SQLException {
         String hapusSql = "DELETE FROM hasil_ranking WHERE tahun = ?";
-        Connection koneksi = null;
-        PreparedStatement perintahHapus = null;
-
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintahHapus = koneksi.prepareStatement(hapusSql);
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintahHapus = koneksi.prepareStatement(hapusSql)) {
             perintahHapus.setInt(1, tahun);
             perintahHapus.executeUpdate();
-        } finally {
-            DatabaseConnection.closeQuietly(perintahHapus);
-            DatabaseConnection.closeQuietly(koneksi);
         }
     }
 
@@ -31,40 +24,29 @@ public class HasilRankingDao {
         String tambahSql = "INSERT INTO hasil_ranking "
                 + "(id_karyawan, tahun, nilai_topsis, peringkat) VALUES (?, ?, ?, ?)";
 
-        Connection koneksi = null;
-        PreparedStatement perintahHapus = null;
-        PreparedStatement perintahTambah = null;
-
+        Connection koneksi = DatabaseConnection.getConnection();
         try {
-            koneksi = DatabaseConnection.getConnection();
             koneksi.setAutoCommit(false);
+            try (PreparedStatement perintahHapus = koneksi.prepareStatement(hapusSql);
+                    PreparedStatement perintahTambah = koneksi.prepareStatement(tambahSql)) {
+                perintahHapus.setInt(1, tahun);
+                perintahHapus.executeUpdate();
 
-            perintahHapus = koneksi.prepareStatement(hapusSql);
-            perintahHapus.setInt(1, tahun);
-            perintahHapus.executeUpdate();
-
-            perintahTambah = koneksi.prepareStatement(tambahSql);
-            for (HasilRanking hasilRanking : daftarHasilRanking) {
-                perintahTambah.setInt(1, hasilRanking.getIdKaryawan());
-                perintahTambah.setInt(2, tahun);
-                perintahTambah.setDouble(3, hasilRanking.getNilaiTopsis());
-                perintahTambah.setInt(4, hasilRanking.getPeringkat());
-                perintahTambah.addBatch();
+                for (HasilRanking hasilRanking : daftarHasilRanking) {
+                    perintahTambah.setInt(1, hasilRanking.getIdKaryawan());
+                    perintahTambah.setInt(2, tahun);
+                    perintahTambah.setDouble(3, hasilRanking.getNilaiTopsis());
+                    perintahTambah.setInt(4, hasilRanking.getPeringkat());
+                    perintahTambah.addBatch();
+                }
+                perintahTambah.executeBatch();
+                koneksi.commit();
             }
-            perintahTambah.executeBatch();
-            koneksi.commit();
         } catch (SQLException ex) {
-            if (koneksi != null) {
-                koneksi.rollback();
-            }
+            koneksi.rollback();
             throw ex;
         } finally {
-            DatabaseConnection.closeQuietly(perintahTambah);
-            DatabaseConnection.closeQuietly(perintahHapus);
-            if (koneksi != null) {
-                koneksi.setAutoCommit(true);
-            }
-            DatabaseConnection.closeQuietly(koneksi);
+            koneksi.setAutoCommit(true);
         }
     }
 
@@ -76,24 +58,16 @@ public class HasilRankingDao {
                 + "WHERE h.tahun = ? "
                 + "ORDER BY h.peringkat";
         List<HasilRanking> daftarHasilRanking = new ArrayList<HasilRanking>();
-        Connection koneksi = null;
-        PreparedStatement perintah = null;
-        ResultSet hasil = null;
-
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintah = koneksi.prepareStatement(sql);
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql)) {
             perintah.setInt(1, tahun);
-            hasil = perintah.executeQuery();
-            while (hasil.next()) {
-                daftarHasilRanking.add(baca(hasil));
+            try (ResultSet hasil = perintah.executeQuery()) {
+                while (hasil.next()) {
+                    daftarHasilRanking.add(baca(hasil));
+                }
             }
-            return daftarHasilRanking;
-        } finally {
-            DatabaseConnection.closeQuietly(hasil);
-            DatabaseConnection.closeQuietly(perintah);
-            DatabaseConnection.closeQuietly(koneksi);
         }
+        return daftarHasilRanking;
     }
 
     public List<HasilRanking> ambilRiwayatByKaryawan(int idKaryawan) throws SQLException {
@@ -104,24 +78,16 @@ public class HasilRankingDao {
                 + "WHERE h.id_karyawan = ? "
                 + "ORDER BY h.tahun ASC";
         List<HasilRanking> daftarHasilRanking = new ArrayList<HasilRanking>();
-        Connection koneksi = null;
-        PreparedStatement perintah = null;
-        ResultSet hasil = null;
-
-        try {
-            koneksi = DatabaseConnection.getConnection();
-            perintah = koneksi.prepareStatement(sql);
+        Connection koneksi = DatabaseConnection.getConnection();
+        try (PreparedStatement perintah = koneksi.prepareStatement(sql)) {
             perintah.setInt(1, idKaryawan);
-            hasil = perintah.executeQuery();
-            while (hasil.next()) {
-                daftarHasilRanking.add(baca(hasil));
+            try (ResultSet hasil = perintah.executeQuery()) {
+                while (hasil.next()) {
+                    daftarHasilRanking.add(baca(hasil));
+                }
             }
-            return daftarHasilRanking;
-        } finally {
-            DatabaseConnection.closeQuietly(hasil);
-            DatabaseConnection.closeQuietly(perintah);
-            DatabaseConnection.closeQuietly(koneksi);
         }
+        return daftarHasilRanking;
     }
 
     private HasilRanking baca(ResultSet hasil) throws SQLException {
