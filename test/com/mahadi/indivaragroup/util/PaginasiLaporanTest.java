@@ -25,6 +25,16 @@ public final class PaginasiLaporanTest {
     }
 
     @Test
+    public void supportsTwentyRowsPerPage() {
+        List<PaginasiLaporan.RentangHalaman> halaman = PaginasiLaporan.buat(41, 20, 20);
+
+        assertEquals(3, halaman.size());
+        assertEquals(20, halaman.get(0).getBarisAkhir());
+        assertEquals(40, halaman.get(1).getBarisAkhir());
+        assertEquals(41, halaman.get(2).getBarisAkhir());
+    }
+
+    @Test
     public void paginatesTopsisSectionsContiguously() {
         List<PaginasiLaporan.RentangHalaman> halaman = PaginasiLaporan.buatBagian(
                 Arrays.asList(4, 3), 2, 3);
